@@ -1,40 +1,47 @@
-<!-- index.html -->
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Assignment Reviewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="/style.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.271.0/dist/umd/lucide.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans">
-  <div class="max-w-5xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6 text-center">📚 Assignment Reviewer</h1>
+<body class="bg-gradient-to-br from-blue-100 to-purple-100 min-h-screen font-sans">
+  <div class="max-w-6xl mx-auto py-10 px-6">
+    <div class="text-center mb-10">
+      <div class="flex justify-center mb-4">
+        <img src="https://cdn-icons-png.flaticon.com/512/3048/3048362.png" alt="logo" class="w-16 h-16 animate-bounce">
+      </div>
+      <h1 class="text-4xl font-extrabold text-gray-800 drop-shadow-lg">📚 Assignment Reviewer</h1>
+      <p class="text-lg text-gray-600 mt-2">AI-powered grading dashboard for teachers</p>
+    </div><div class="flex justify-center mb-8">
+  <button id="gradeBtn" class="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 transition-transform">
+    <i class="lucide lucide-stamp mr-2"></i> Grade Assignments
+  </button>
+</div>
 
-    <div class="flex justify-center mb-4">
-      <button id="gradeBtn" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
-        Grade Assignments
-      </button>
-    </div>
+<div id="loading" class="text-center text-blue-500 font-medium hidden animate-pulse">Grading in progress...</div>
 
-    <div id="loading" class="text-center text-sm text-gray-500 hidden">Grading in progress...</div>
-
-    <div class="bg-white p-4 rounded shadow">
-      <h2 class="text-xl font-semibold mb-4">Results</h2>
-      <table class="w-full table-auto">
-        <thead>
-          <tr class="bg-gray-200 text-left">
-            <th class="p-2">Name</th>
-            <th class="p-2">Course</th>
-            <th class="p-2">Feedback</th>
-          </tr>
-        </thead>
-        <tbody id="resultsBody"></tbody>
-      </table>
-    </div>
+<div class="bg-white rounded-3xl shadow-xl p-6">
+  <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+    <i class="lucide lucide-list-check mr-2"></i> Results
+  </h2>
+  <div class="overflow-auto">
+    <table class="min-w-full table-auto text-sm text-gray-800">
+      <thead>
+        <tr class="bg-blue-200 text-gray-700 uppercase text-xs">
+          <th class="p-3 text-left">Name</th>
+          <th class="p-3 text-left">Course</th>
+          <th class="p-3 text-left">Feedback</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody">
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <script>
+  </div>  <script>
     const gradeBtn = document.getElementById("gradeBtn");
     const loading = document.getElementById("loading");
     const resultsBody = document.getElementById("resultsBody");
@@ -45,10 +52,10 @@
       resultsBody.innerHTML = "";
       data.forEach(entry => {
         resultsBody.innerHTML += `
-          <tr class="border-t">
-            <td class="p-2">${entry.name || "N/A"}</td>
-            <td class="p-2">${entry.course || "N/A"}</td>
-            <td class="p-2 whitespace-pre-line">${entry.grade_output}</td>
+          <tr class="border-t border-gray-200">
+            <td class="p-3 font-medium">${entry.name || "N/A"}</td>
+            <td class="p-3">${entry.course || "N/A"}</td>
+            <td class="p-3 whitespace-pre-line text-gray-700">${entry.grade_output}</td>
           </tr>
         `;
       });
@@ -64,6 +71,5 @@
     };
 
     fetchResults();
-  </script>
-</body>
+  </script></body>
 </html>
