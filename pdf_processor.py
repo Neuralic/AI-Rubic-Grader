@@ -5,6 +5,10 @@ from PyPDF2 import PdfReader
 
 INCOMING_DIR = "incoming_pdfs"
 
+# Ensure the directory exists (create if not)
+if not os.path.exists(INCOMING_DIR):
+    os.makedirs(INCOMING_DIR)
+
 def extract_text_from_pdf(file_path):
     try:
         reader = PdfReader(file_path)
