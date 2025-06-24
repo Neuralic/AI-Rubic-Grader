@@ -1,0 +1,69 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Assignment Reviewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="/style.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans">
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">📚 Assignment Reviewer</h1>
+
+    <div class="flex justify-center mb-4">
+      <button id="gradeBtn" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
+        Grade Assignments
+      </button>
+    </div>
+
+    <div id="loading" class="text-center text-sm text-gray-500 hidden">Grading in progress...</div>
+
+    <div class="bg-white p-4 rounded shadow">
+      <h2 class="text-xl font-semibold mb-4">Results</h2>
+      <table class="w-full table-auto">
+        <thead>
+          <tr class="bg-gray-200 text-left">
+            <th class="p-2">Name</th>
+            <th class="p-2">Course</th>
+            <th class="p-2">Feedback</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const gradeBtn = document.getElementById("gradeBtn");
+    const loading = document.getElementById("loading");
+    const resultsBody = document.getElementById("resultsBody");
+
+    async function fetchResults() {
+      const res = await fetch("/results");
+      const data = await res.json();
+      resultsBody.innerHTML = "";
+      data.forEach(entry => {
+        resultsBody.innerHTML += `
+          <tr class="border-t">
+            <td class="p-2">${entry.name || "N/A"}</td>
+            <td class="p-2">${entry.course || "N/A"}</td>
+            <td class="p-2 whitespace-pre-line">${entry.grade_output}</td>
+          </tr>
+        `;
+      });
+    }
+
+    gradeBtn.onclick = async () => {
+      loading.classList.remove("hidden");
+      gradeBtn.disabled = true;
+      await fetch("/grade-all", { method: "POST" });
+      await fetchResults();
+      loading.classList.add("hidden");
+      gradeBtn.disabled = false;
+    };
+
+    fetchResults();
+  </script>
+</body>
+</html>
