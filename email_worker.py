@@ -8,11 +8,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+INCOMING_DIR = "incoming_pdfs"
+
+# Ensure the directory exists (create if not)
+if not os.path.exists(INCOMING_DIR):
+    os.makedirs(INCOMING_DIR)
+
 IMAP_HOST = os.getenv("IMAP_HOST")
 IMAP_PORT = int(os.getenv("IMAP_PORT", "993"))
 EMAIL_USER = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASS = os.getenv("EMAIL_PASSWORD")
-SAVE_DIR = "incoming_pdfs"
+SAVE_DIR = INCOMING_DIR
 
 os.makedirs(SAVE_DIR, exist_ok=True)
 
