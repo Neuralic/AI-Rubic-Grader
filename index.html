@@ -14,15 +14,7 @@
       </div>
       <h1 class="text-4xl font-extrabold text-gray-800 drop-shadow-lg">📚 Assignment Reviewer</h1>
       <p class="text-lg text-gray-600 mt-2">AI-powered grading dashboard for teachers</p>
-    </div><div class="flex justify-center mb-8">
-  <button id="gradeBtn" class="bg-gradient-to-r from-indigo-500 to-blue-600 text-white px-8 py-3 rounded-full shadow-lg hover:scale-105 transition-transform">
-    <i class="lucide lucide-stamp mr-2"></i> Grade Assignments
-  </button>
-</div>
-
-<div id="loading" class="text-center text-blue-500 font-medium hidden animate-pulse">Grading in progress...</div>
-
-<div class="bg-white rounded-3xl shadow-xl p-6">
+    </div><div class="bg-white rounded-3xl shadow-xl p-6">
   <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
     <i class="lucide lucide-list-check mr-2"></i> Results
   </h2>
@@ -42,8 +34,6 @@
 </div>
 
   </div>  <script>
-    const gradeBtn = document.getElementById("gradeBtn");
-    const loading = document.getElementById("loading");
     const resultsBody = document.getElementById("resultsBody");
 
     async function fetchResults() {
@@ -61,15 +51,7 @@
       });
     }
 
-    gradeBtn.onclick = async () => {
-      loading.classList.remove("hidden");
-      gradeBtn.disabled = true;
-      await fetch("/grade-all", { method: "POST" });
-      await fetchResults();
-      loading.classList.add("hidden");
-      gradeBtn.disabled = false;
-    };
-
     fetchResults();
+    setInterval(fetchResults, 10000); // auto-refresh every 10 seconds
   </script></body>
 </html>
