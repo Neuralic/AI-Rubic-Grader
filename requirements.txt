@@ -1,6 +1,9 @@
 fastapi
-uvicorn[standard]
+uvicorn
 PyPDF2
 openai
 APScheduler
+python-dotenv
+imaplib
+email
 python-dotenv
