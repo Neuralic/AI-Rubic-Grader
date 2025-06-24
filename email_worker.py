@@ -1,4 +1,3 @@
-
 import imaplib
 import email
 import os
@@ -8,6 +7,7 @@ from email.mime.text import MIMEText
 from dotenv import load_dotenv
 from pdf_processor import process_single_pdf
 from grader import grade_assignment
+from grader_utils import write_result_to_file
 
 load_dotenv()
 
@@ -40,30 +40,25 @@ def check_email_for_pdfs():
         _, msg_data = mail.fetch(num, "(RFC822)")
         raw_email = msg_data[0][1]
         msg = email.message_from_bytes(raw_email)
-
         sender_email = email.utils.parseaddr(msg["From"])[1]
-        subject = msg["Subject"]
 
         for part in msg.walk():
             if part.get_content_type() == "application/pdf":
-                filename = part.get_filename()
-                if not filename:
-                    filename = "assignment.pdf"
+                filename = part.get_filename() or "assignment.pdf"
                 filepath = os.path.join(INCOMING_DIR, filename)
 
                 with open(filepath, "wb") as f:
                     f.write(part.get_payload(decode=True))
 
                 print(f"✅ Saved {filename} from {sender_email}")
-
-                # Auto-grade and email feedback
                 student_data = process_single_pdf(filepath)
+
                 if student_data:
                     name = student_data["name"]
                     course = student_data["course"]
                     result = grade_assignment(student_data)
 
-                    feedback = f"""Hello {name},
+                    feedback = f\"\"\"Hello {name},
 
 Here is your AI-reviewed assignment feedback for {course}:
 
@@ -71,8 +66,13 @@ Here is your AI-reviewed assignment feedback for {course}:
 
 Regards,
 Assignment Reviewer System
-"""
+\"\"\"
                     send_email_feedback(sender_email, f"{course} - Assignment Feedback", feedback)
+                    write_result_to_file({
+                        "name": name,
+                        "course": course,
+                        "grade_output": result["grade_output"]
+                    })
                     print(f"📧 Sent feedback to {sender_email}")
 
     mail.logout()
@@ -84,4 +84,4 @@ def check_inbox_periodically():
             check_email_for_pdfs()
         except Exception as e:
             print("❌ Email check failed:", e)
-        time.sleep(300)  # Check every 5 mins
+        time.sleep(300)
