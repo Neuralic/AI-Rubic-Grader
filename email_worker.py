@@ -1,77 +1,87 @@
-# email_worker.py
+
 import imaplib
 import email
-from email.header import decode_header
 import os
 import time
+import smtplib
+from email.mime.text import MIMEText
 from dotenv import load_dotenv
+from pdf_processor import process_single_pdf
+from grader import grade_assignment
 
 load_dotenv()
 
+EMAIL = os.getenv("EMAIL_USER")
+PASSWORD = os.getenv("EMAIL_PASS")
 INCOMING_DIR = "incoming_pdfs"
 
-# Ensure the directory exists (create if not)
-if not os.path.exists(INCOMING_DIR):
-    os.makedirs(INCOMING_DIR)
+os.makedirs(INCOMING_DIR, exist_ok=True)
 
-IMAP_HOST = os.getenv("IMAP_HOST")
-IMAP_PORT = int(os.getenv("IMAP_PORT", "993"))
-EMAIL_USER = os.getenv("EMAIL_ADDRESS")
-EMAIL_PASS = os.getenv("EMAIL_PASSWORD")
-SAVE_DIR = INCOMING_DIR
+def send_email_feedback(to_email, subject, message):
+    msg = MIMEText(message)
+    msg["Subject"] = subject
+    msg["From"] = EMAIL
+    msg["To"] = to_email
 
-os.makedirs(SAVE_DIR, exist_ok=True)
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL, PASSWORD)
+        smtp.send_message(msg)
 
-def connect_mailbox():
-    mail = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
-    mail.login(EMAIL_USER, EMAIL_PASS)
+def check_email_for_pdfs():
+    mail = imaplib.IMAP4_SSL("imap.gmail.com")
+    mail.login(EMAIL, PASSWORD)
     mail.select("inbox")
-    return mail
 
-def save_pdf_attachments(mail):
-    status, messages = mail.search(None, '(UNSEEN)')
-    email_ids = messages[0].split()
+    status, messages = mail.search(None, "UNSEEN")
+    if status != "OK":
+        return
 
-    for email_id in email_ids:
-        res, msg_data = mail.fetch(email_id, "(RFC822)")
-        if res != "OK":
-            continue
+    for num in messages[0].split():
+        _, msg_data = mail.fetch(num, "(RFC822)")
+        raw_email = msg_data[0][1]
+        msg = email.message_from_bytes(raw_email)
 
-        for response_part in msg_data:
-            if isinstance(response_part, tuple):
-                msg = email.message_from_bytes(response_part[1])
-                subject, encoding = decode_header(msg["Subject"])[0]
-                if isinstance(subject, bytes):
-                    subject = subject.decode(encoding or "utf-8")
+        sender_email = email.utils.parseaddr(msg["From"])[1]
+        subject = msg["Subject"]
 
-                from_ = msg.get("From")
-                date = msg.get("Date")
-                print(f"📬 New email from {from_} - {subject}")
+        for part in msg.walk():
+            if part.get_content_type() == "application/pdf":
+                filename = part.get_filename()
+                if not filename:
+                    filename = "assignment.pdf"
+                filepath = os.path.join(INCOMING_DIR, filename)
 
-                if msg.is_multipart():
-                    for part in msg.walk():
-                        content_type = part.get_content_type()
-                        filename = part.get_filename()
+                with open(filepath, "wb") as f:
+                    f.write(part.get_payload(decode=True))
 
-                        if filename and filename.endswith(".pdf"):
-                            filepath = os.path.join(SAVE_DIR, filename)
-                            with open(filepath, "wb") as f:
-                                f.write(part.get_payload(decode=True))
-                            print(f"✅ Saved PDF: {filename}")
-                else:
-                    # Not multipart - rare case
-                    pass
+                print(f"✅ Saved {filename} from {sender_email}")
 
-    print("✅ Inbox scan complete.")
+                # Auto-grade and email feedback
+                student_data = process_single_pdf(filepath)
+                if student_data:
+                    name = student_data["name"]
+                    course = student_data["course"]
+                    result = grade_assignment(student_data)
 
-if __name__ == "__main__":
-    print("🔁 Starting email poller...")
+                    feedback = f"""Hello {name},
+
+Here is your AI-reviewed assignment feedback for {course}:
+
+{result['grade_output']}
+
+Regards,
+Assignment Reviewer System
+"""
+                    send_email_feedback(sender_email, f"{course} - Assignment Feedback", feedback)
+                    print(f"📧 Sent feedback to {sender_email}")
+
+    mail.logout()
+
+def check_inbox_periodically():
     while True:
         try:
-            mail = connect_mailbox()
-            save_pdf_attachments(mail)
-            mail.logout()
+            print("📬 Checking inbox...")
+            check_email_for_pdfs()
         except Exception as e:
-            print("❌ Error:", e)
-
-        time.sleep(60)  # Poll every 60 seconds
+            print("❌ Email check failed:", e)
+        time.sleep(300)  # Check every 5 mins
