@@ -7,3 +7,4 @@ python-dotenv
 imaplib
 email
 python-dotenv
+google-generativeai
