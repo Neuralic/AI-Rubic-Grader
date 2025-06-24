@@ -29,6 +29,14 @@ def grade_all():
 
     return {"status": "success", "graded": len(graded_results)}
 
+
+import threading
+from email_worker import check_inbox_periodically
+
+@app.on_event("startup")
+def start_background_tasks():
+    threading.Thread(target=check_inbox_periodically, daemon=True).start()
+
 @app.get("/results")
 def get_results():
     return JSONResponse(content=graded_results)
