@@ -5,6 +5,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+INCOMING_DIR = "incoming_pdfs"
+
+# Ensure the directory exists (create if not)
+if not os.path.exists(INCOMING_DIR):
+    os.makedirs(INCOMING_DIR)
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
