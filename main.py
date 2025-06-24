@@ -1,42 +1,46 @@
-# main.py
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
-from grader import grade_assignment
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from email_worker import check_inbox_periodically
+from grader_utils import read_all_results
 from pdf_processor import process_all_pdfs
+from grader import grade_assignment
+import threading
+import os
 
 app = FastAPI()
 
-graded_results = []
+# Allow frontend to access backend from same origin
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/")
-def serve_frontend():
-    return FileResponse("index.html")
-
-@app.get("/style.css")
-def serve_css():
-    return FileResponse("style.css", media_type="text/css")
-
-@app.post("/grade-all")
-def grade_all():
-    global graded_results
-    students = process_all_pdfs()
-    graded_results = []
-
-    for student in students:
-        result = grade_assignment(student)
-        if result:
-            graded_results.append(result)
-
-    return {"status": "success", "graded": len(graded_results)}
-
-
-import threading
-from email_worker import check_inbox_periodically
-
+# Run email checker as a background task on startup
 @app.on_event("startup")
 def start_background_tasks():
     threading.Thread(target=check_inbox_periodically, daemon=True).start()
 
+@app.get("/")
+def get_index():
+    return FileResponse("index.html")
+
 @app.get("/results")
 def get_results():
-    return JSONResponse(content=graded_results)
+    return read_all_results()
+
+@app.get("/grade-all")
+def grade_all():
+    students = process_all_pdfs()
+    results = []
+    for student_data in students:
+        result = grade_assignment(student_data)
+        results.append({
+            "name": student_data["name"],
+            "course": student_data["course"],
+            "grade_output": result["grade_output"]
+        })
+    return results
