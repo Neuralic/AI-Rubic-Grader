@@ -4,7 +4,6 @@ PyPDF2
 openai
 APScheduler
 python-dotenv
-imaplib
 email
 python-dotenv
 google-generativeai
