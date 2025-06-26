@@ -4,6 +4,7 @@ import os
 import time
 import smtplib
 from email.mime.text import MIMEText
+from email.header import decode_header
 from dotenv import load_dotenv
 from pdf_processor import process_single_pdf
 from grader import grade_assignment
@@ -31,6 +32,21 @@ def send_email_feedback(to_email, subject, message):
     except Exception as e:
         print(f"❌ Failed to send email to {to_email}: {e}")
 
+def get_safe_filename(part):
+    raw = part.get_filename()
+    if not raw:
+        return "assignment.pdf"
+
+    try:
+        decoded, encoding = decode_header(raw)[0]
+        if isinstance(decoded, bytes):
+            decoded = decoded.decode(encoding or "utf-8", errors="ignore")
+        if not isinstance(decoded, str):
+            return "assignment.pdf"
+        return decoded.replace(" ", "_")
+    except Exception:
+        return "assignment.pdf"
+
 def check_email_for_pdfs():
     try:
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
@@ -51,12 +67,7 @@ def check_email_for_pdfs():
 
             for part in msg.walk():
                 if part.get_content_type() == "application/pdf":
-                    raw_filename = part.get_filename()
-                    if not raw_filename or not isinstance(raw_filename, str):
-                        filename = "assignment.pdf"
-                    else:
-                        filename = raw_filename.replace(" ", "_")
-
+                    filename = get_safe_filename(part)
                     filepath = os.path.join(INCOMING_DIR, filename)
 
                     with open(filepath, "wb") as f:
