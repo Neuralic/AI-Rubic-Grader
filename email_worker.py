@@ -24,7 +24,7 @@ def send_email_feedback(to_email, subject, message):
     msg["To"] = to_email
 
     try:
-        with smtpllib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
             print(f"📧 Feedback email sent to {to_email}")
@@ -51,8 +51,12 @@ def check_email_for_pdfs():
 
             for part in msg.walk():
                 if part.get_content_type() == "application/pdf":
-                    filename = part.get_filename() or "assignment.pdf"
-                    filename = filename.replace(" ", "_")
+                    raw_filename = part.get_filename()
+                    if not raw_filename or not isinstance(raw_filename, str):
+                        filename = "assignment.pdf"
+                    else:
+                        filename = raw_filename.replace(" ", "_")
+
                     filepath = os.path.join(INCOMING_DIR, filename)
 
                     with open(filepath, "wb") as f:
@@ -66,7 +70,6 @@ def check_email_for_pdfs():
                         course = student_data["course"]
                         result = grade_assignment(student_data)
 
-                        # ✅ FIXED multiline string
                         feedback = f"""Hello {name},
 
 Here is your AI-reviewed assignment feedback for {course}:
