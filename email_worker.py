@@ -23,42 +23,51 @@ def send_email_feedback(to_email, subject, message):
     msg["From"] = EMAIL
     msg["To"] = to_email
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(EMAIL, PASSWORD)
-        smtp.send_message(msg)
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(EMAIL, PASSWORD)
+            smtp.send_message(msg)
+            print(f"📧 Feedback email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ Failed to send email to {to_email}: {e}")
 
 def check_email_for_pdfs():
-    mail = imaplib.IMAP4_SSL("imap.gmail.com")
-    mail.login(EMAIL, PASSWORD)
-    mail.select("inbox")
+    try:
+        mail = imaplib.IMAP4_SSL("imap.gmail.com")
+        mail.login(EMAIL, PASSWORD)
+        mail.select("inbox")
 
-    status, messages = mail.search(None, "UNSEEN")
-    if status != "OK":
-        return
+        status, messages = mail.search(None, "UNSEEN")
+        if status != "OK":
+            return
 
-    for num in messages[0].split():
-        _, msg_data = mail.fetch(num, "(RFC822)")
-        raw_email = msg_data[0][1]
-        msg = email.message_from_bytes(raw_email)
-        sender_email = email.utils.parseaddr(msg["From"])[1]
+        for num in messages[0].split():
+            _, msg_data = mail.fetch(num, "(RFC822)")
+            raw_email = msg_data[0][1]
+            msg = email.message_from_bytes(raw_email)
 
-        for part in msg.walk():
-            if part.get_content_type() == "application/pdf":
-                filename = part.get_filename() or "assignment.pdf"
-                filepath = os.path.join(INCOMING_DIR, filename)
+            sender_email = email.utils.parseaddr(msg["From"])[1]
+            subject = msg["Subject"] or "No Subject"
 
-                with open(filepath, "wb") as f:
-                    f.write(part.get_payload(decode=True))
+            for part in msg.walk():
+                if part.get_content_type() == "application/pdf":
+                    filename = part.get_filename() or "assignment.pdf"
+                    filename = filename.replace(" ", "_")  # sanitize filename
+                    filepath = os.path.join(INCOMING_DIR, filename)
 
-                print(f"✅ Saved {filename} from {sender_email}")
-                student_data = process_single_pdf(filepath)
+                    with open(filepath, "wb") as f:
+                        f.write(part.get_payload(decode=True))
 
-                if student_data:
-                    name = student_data["name"]
-                    course = student_data["course"]
-                    result = grade_assignment(student_data)
+                    print(f"✅ Saved {filename} from {sender_email}")
+                    student_data = process_single_pdf(filepath)
 
-                    feedback = f"""Hello {name},
+                    if student_data:
+                        name = student_data["name"]
+                        course = student_data["course"]
+                        result = grade_assignment(student_data)
+
+                        # Compose feedback message
+                        feedback = f\"\"\"Hello {name},
 
 Here is your AI-reviewed assignment feedback for {course}:
 
@@ -66,22 +75,25 @@ Here is your AI-reviewed assignment feedback for {course}:
 
 Regards,
 Assignment Reviewer System
-"""
-                    send_email_feedback(sender_email, f"{course} - Assignment Feedback", feedback)
-                    write_result_to_file({
-                        "name": name,
-                        "course": course,
-                        "grade_output": result["grade_output"]
-                    })
-                    print(f"📧 Sent feedback to {sender_email}")
+\"\"\"
 
-    mail.logout()
+                        # Send feedback email
+                        send_email_feedback(sender_email, f"{course} - Assignment Feedback", feedback)
+
+                        # Save to grading_results.json
+                        write_result_to_file({
+                            "name": name,
+                            "course": course,
+                            "grade_output": result["grade_output"]
+                        })
+
+        mail.logout()
+
+    except Exception as e:
+        print("❌ Email check failed:", e)
 
 def check_inbox_periodically():
     while True:
-        try:
-            print("📬 Checking inbox...")
-            check_email_for_pdfs()
-        except Exception as e:
-            print("❌ Email check failed:", e)
-        time.sleep(300)
+        print("📬 Checking inbox...")
+        check_email_for_pdfs()
+        time.sleep(300)  # every 5 minutes
