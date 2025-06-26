@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from email_worker import check_inbox_periodically
 from grader_utils import read_all_results
 from pdf_processor import process_all_pdfs
@@ -10,7 +11,7 @@ import os
 
 app = FastAPI()
 
-# Allow frontend to access backend from same origin
+# CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,12 +20,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Run email checker as a background task on startup
+# Serve static files like style.css
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
+
+# Start email checker in background
 @app.on_event("startup")
 def start_background_tasks():
     threading.Thread(target=check_inbox_periodically, daemon=True).start()
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def get_index():
     return FileResponse("index.html")
 
