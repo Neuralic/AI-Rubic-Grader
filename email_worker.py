@@ -58,7 +58,7 @@ def check_email_for_pdfs():
                     course = student_data["course"]
                     result = grade_assignment(student_data)
 
-                   feedback = f"""Hello {name},
+                    feedback = f"""Hello {name},
 
 Here is your AI-reviewed assignment feedback for {course}:
 
@@ -66,7 +66,7 @@ Here is your AI-reviewed assignment feedback for {course}:
 
 Regards,
 Assignment Reviewer System
-\"\"\"
+"""
                     send_email_feedback(sender_email, f"{course} - Assignment Feedback", feedback)
                     write_result_to_file({
                         "name": name,
