@@ -24,7 +24,7 @@ def send_email_feedback(to_email, subject, message):
     msg["To"] = to_email
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        with smtpllib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
             print(f"📧 Feedback email sent to {to_email}")
@@ -52,7 +52,7 @@ def check_email_for_pdfs():
             for part in msg.walk():
                 if part.get_content_type() == "application/pdf":
                     filename = part.get_filename() or "assignment.pdf"
-                    filename = filename.replace(" ", "_")  # sanitize filename
+                    filename = filename.replace(" ", "_")
                     filepath = os.path.join(INCOMING_DIR, filename)
 
                     with open(filepath, "wb") as f:
@@ -66,8 +66,8 @@ def check_email_for_pdfs():
                         course = student_data["course"]
                         result = grade_assignment(student_data)
 
-                        # Compose feedback message
-                        feedback = f\"\"\"Hello {name},
+                        # ✅ FIXED multiline string
+                        feedback = f"""Hello {name},
 
 Here is your AI-reviewed assignment feedback for {course}:
 
@@ -75,12 +75,10 @@ Here is your AI-reviewed assignment feedback for {course}:
 
 Regards,
 Assignment Reviewer System
-\"\"\"
+"""
 
-                        # Send feedback email
                         send_email_feedback(sender_email, f"{course} - Assignment Feedback", feedback)
 
-                        # Save to grading_results.json
                         write_result_to_file({
                             "name": name,
                             "course": course,
@@ -96,4 +94,4 @@ def check_inbox_periodically():
     while True:
         print("📬 Checking inbox...")
         check_email_for_pdfs()
-        time.sleep(300)  # every 5 minutes
+        time.sleep(300)
