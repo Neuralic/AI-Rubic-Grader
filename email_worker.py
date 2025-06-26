@@ -41,10 +41,15 @@ def get_safe_filename(part):
         decoded, encoding = decode_header(raw)[0]
         if isinstance(decoded, bytes):
             decoded = decoded.decode(encoding or "utf-8", errors="ignore")
-        if not isinstance(decoded, str):
+        if not isinstance(decoded, str) or decoded is None:
             return "assignment.pdf"
-        return decoded.replace(" ", "_")
-    except Exception:
+
+        safe_name = str(decoded).replace(" ", "_")
+        print(f"📄 Processed filename: {safe_name}")  # Optional debug
+        return safe_name
+
+    except Exception as e:
+        print(f"❌ Failed to decode filename: {e}")
         return "assignment.pdf"
 
 def check_email_for_pdfs():
