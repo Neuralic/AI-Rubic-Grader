@@ -43,11 +43,9 @@ def get_safe_filename(part):
             decoded = decoded.decode(encoding or "utf-8", errors="ignore")
         if not isinstance(decoded, str) or decoded is None:
             return "assignment.pdf"
-
         safe_name = str(decoded).replace(" ", "_")
-        print(f"📄 Processed filename: {safe_name}")  # Optional debug
+        print(f"📄 Processed filename: {safe_name}")
         return safe_name
-
     except Exception as e:
         print(f"❌ Failed to decode filename: {e}")
         return "assignment.pdf"
