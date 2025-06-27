@@ -12,8 +12,8 @@ from grader_utils import write_result_to_file
 
 load_dotenv()
 
-EMAIL = os.getenv("EMAIL_USER")
-PASSWORD = os.getenv("EMAIL_PASS")
+EMAIL = os.getenv("EMAIL_ADDRESS")
+PASSWORD = os.getenv("EMAIL_PASSWORD")
 INCOMING_DIR = "incoming_pdfs"
 
 os.makedirs(INCOMING_DIR, exist_ok=True)
@@ -41,9 +41,9 @@ def get_safe_filename(part):
         decoded, encoding = decode_header(raw)[0]
         if isinstance(decoded, bytes):
             decoded = decoded.decode(encoding or "utf-8", errors="ignore")
-        if not isinstance(decoded, str) or decoded is None:
+        if not isinstance(decoded, str):
             return "assignment.pdf"
-        safe_name = str(decoded).replace(" ", "_")
+        safe_name = decoded.replace(" ", "_")
         print(f"📄 Processed filename: {safe_name}")
         return safe_name
     except Exception as e:
@@ -112,3 +112,7 @@ def check_inbox_periodically():
         print("📬 Checking inbox...")
         check_email_for_pdfs()
         time.sleep(300)
+
+")
+
+
