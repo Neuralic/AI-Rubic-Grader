@@ -11,7 +11,6 @@ import os
 
 app = FastAPI()
 
-# CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,12 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files like style.css
 app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
-# Start email checker in background
 @app.on_event("startup")
 def start_background_tasks():
+    print("🚀 Background inbox checker started.")
     threading.Thread(target=check_inbox_periodically, daemon=True).start()
 
 @app.get("/", response_class=HTMLResponse)
