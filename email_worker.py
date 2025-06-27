@@ -12,8 +12,8 @@ from grader_utils import write_result_to_file
 
 load_dotenv()
 
-EMAIL = os.getenv("EMAIL_USER")
-PASSWORD = os.getenv("EMAIL_PASS")
+EMAIL = os.getenv("EMAIL_ADDRESS")
+PASSWORD = os.getenv("EMAIL_PASSWORD")
 INCOMING_DIR = "incoming_pdfs"
 
 os.makedirs(INCOMING_DIR, exist_ok=True)
