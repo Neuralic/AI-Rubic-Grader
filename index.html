@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Assignment Grader</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="/style.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.271.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+  <!-- Navigation Sidebar -->
+  <div class="sidebar">
+    <div class="logo-container">
+      <img src="https://cdn-icons-png.flaticon.com/512/3048/3048362.png" alt="logo" class="logo">
+      <h1>AI Assignment Grader</h1>
+    </div>
+    
+    <nav>
+      <ul>
+        <li class="active">
+          <i class="fas fa-chart-line"></i>
+          <span>Dashboard</span>
+        </li>
+        <li>
+          <i class="fas fa-cog"></i>
+          <span>Rubric Settings</span>
+        </li>
+        <li>
+          <i class="fas fa-calendar-alt"></i>
+          <span>Deadlines</span>
+        </li>
+        <li>
+          <i class="fas fa-history"></i>
+          <span>Submission History</span>
+        </li>
+      </ul>
+    </nav>
+    
+    <div class="system-status">
+      <div class="status-indicator active"></div>
+      <span>Email Processing Active</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header>
+      <div class="header-left">
+        <h2>Assignment Dashboard</h2>
+        <p>AI-powered grading for educators</p>
+      </div>
+      <div class="header-right">
+        <div class="search-bar">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search students...">
+        </div>
+        <button class="btn grade-all-btn">
+          <i class="fas fa-bolt"></i>
+          Grade All Submissions
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="stats-container">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="totalStudents">0</h3>
+          <p>Students Graded</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="pendingSubmissions">0</h3>
+          <p>Pending Review</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+          <h3 id="onTimeRate">0%</h3>
+          <p>On-Time Rate</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="results-card">
+      <div class="card-header">
+        <h3>
+          <i class="fas fa-list-check"></i>
+          Grading Results
+        </h3>
+        <div class="controls">
+          <div class="filter">
+            <i class="fas fa-filter"></i>
+            <select id="courseFilter">
+              <option value="all">All Courses</option>
+              <!-- Will be populated dynamically -->
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th class="student-col">Student</th>
+              <th>Course</th>
+              <th>Feedback</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <!-- Data will be populated here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="card-footer">
+        <div class="refresh-info">
+          <i class="fas fa-sync-alt"></i>
+          <span>Auto-refresh in <span id="refreshCountdown">10</span>s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const resultsBody = document.getElementById("resultsBody");
+    const courseFilter = document.getElementById("courseFilter");
+    const refreshCountdown = document.getElementById("refreshCountdown");
+    let refreshTimer = 10;
+    let countdownInterval;
+
+    async function fetchResults() {
+      try {
+        const res = await fetch("/results");
+        const data = await res.json();
+        
+        // Update stats
+        document.getElementById("totalStudents").textContent = data.length;
+        document.getElementById("pendingSubmissions").textContent = data.filter(d => !d.grade_output).length;
+        
+        // Update course filter
+        updateCourseFilter(data);
+        
+        // Filter data if needed
+        const filterValue = courseFilter.value;
+        const filteredData = filterValue === "all" 
+          ? data 
+          : data.filter(entry => entry.course === filterValue);
+        
+        renderResults(filteredData);
+      } catch (error) {
+        console.error("Error fetching results:", error);
+      }
+    }
+
+    function updateCourseFilter(data) {
+      // Get unique courses
+      const courses = [...new Set(data.map(item => item.course))].filter(Boolean);
+      
+      // Check if we need to update
+      if (courses.length === courseFilter.querySelectorAll('option').length - 1) return;
+      
+      // Clear existing options (except "All Courses")
+      while (courseFilter.options.length > 1) {
+        courseFilter.remove(1);
+      }
+      
+      // Add new options
+      courses.forEach(course => {
+        const option = document.createElement("option");
+        option.value = course;
+        option.textContent = course;
+        courseFilter.appendChild(option);
+      });
+    }
+
+    function renderResults(data) {
+      resultsBody.innerHTML = "";
+      
+      if (data.length === 0) {
+        resultsBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty-state">
+              <i class="fas fa-inbox"></i>
+              <p>No assignments graded yet</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      
+      data.forEach(entry => {
+        const statusClass = entry.grade_output ? "status-complete" : "status-pending";
+        const statusText = entry.grade_output ? "Reviewed" : "Pending";
+        
+        resultsBody.innerHTML += `
+          <tr>
+            <td class="student-cell">
+              <div class="student-info">
+                <div class="avatar">${entry.name ? entry.name.charAt(0) : '?'}</div>
+                <div>
+                  <div class="student-name">${entry.name || "N/A"}</div>
+                  <div class="student-email">${entry.email || ""}</div>
+                </div>
+              </div>
+            </td>
+            <td class="course-cell">${entry.course || "N/A"}</td>
+            <td class="feedback-cell">
+              ${entry.grade_output 
+                ? `<div class="feedback-content">${entry.grade_output}</div>` 
+                : '<div class="status-badge status-pending">Pending AI Review</div>'}
+            </td>
+            <td class="status-cell">
+              <div class="status-badge ${statusClass}">${statusText}</div>
+            </td>
+            <td class="actions-cell">
+              <button class="icon-btn" title="Send feedback">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+              <button class="icon-btn" title="Download PDF">
+                <i class="fas fa-download"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function startRefreshCountdown() {
+      clearInterval(countdownInterval);
+      refreshTimer = 10;
+      
+      countdownInterval = setInterval(() => {
+        refreshTimer--;
+        refreshCountdown.textContent = refreshTimer;
+        
+        if (refreshTimer <= 0) {
+          fetchResults();
+          refreshTimer = 10;
+        }
+      }, 1000);
+    }
+
+    // Event Listeners
+    courseFilter.addEventListener("change", fetchResults);
+    
+    document.querySelector(".grade-all-btn").addEventListener("click", async () => {
+      const btn = document.querySelector(".grade-all-btn");
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+      btn.disabled = true;
+      
+      try {
+        const response = await fetch("/grade-all");
+        const data = await response.json();
+        console.log("Grading complete:", data);
+        fetchResults();
+      } catch (error) {
+        console.error("Grading failed:", error);
+      }
+      
+      setTimeout(() => {
+        btn.innerHTML = '<i class="fas fa-bolt"></i> Grade All Submissions';
+        btn.disabled = false;
+      }, 2000);
+    });
+
+    // Initialize
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchResults();
+      startRefreshCountdown();
+      setInterval(fetchResults, 10000); // Auto-refresh every 10 seconds
+    });
+  </script>
+</body>
+</html>
