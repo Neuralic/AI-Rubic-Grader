@@ -12,8 +12,8 @@ from grader_utils import write_result_to_file
 
 load_dotenv()
 
-EMAIL = os.getenv("EMAIL_ADDRESS")
-PASSWORD = os.getenv("EMAIL_PASSWORD")
+EMAIL = os.getenv("EMAIL_USER")
+PASSWORD = os.getenv("EMAIL_PASS")
 INCOMING_DIR = "incoming_pdfs"
 
 os.makedirs(INCOMING_DIR, exist_ok=True)
@@ -112,7 +112,3 @@ def check_inbox_periodically():
         print("📬 Checking inbox...")
         check_email_for_pdfs()
         time.sleep(300)
-
-")
-
-
