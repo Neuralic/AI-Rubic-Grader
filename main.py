@@ -21,8 +21,14 @@ app.add_middleware(
 )
 
 # Serve static files from the root directory
+# This should serve index.html and styles.css directly from the root
 app.mount("/", StaticFiles(directory="."), name="static")
 
+# The @app.get("/") route for index.html might conflict with the StaticFiles mount for "/"
+# If index.html is directly in the root, StaticFiles(directory=".") should handle it.
+# We can remove this explicit route or ensure it's handled correctly.
+# For now, let's keep it and see if the StaticFiles mount takes precedence or conflicts.
+# If it conflicts, we might need to serve index.html differently or rename the static mount path.
 @app.get("/")
 async def read_root():
     return FileResponse("index.html")
