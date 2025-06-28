@@ -40,12 +40,12 @@ def format_rubric_for_prompt(rubric_data):
     if not rubric_data:
         return "No rubric provided."
     
-    formatted_rubric = f"Rubric Name: {rubric_data.get(\'name\', \'N/A\')}\n"
-    formatted_rubric += f"Description: {rubric_data.get(\'description\', \'N/A\')}\n\n"
+    formatted_rubric = f"Rubric Name: {rubric_data.get("name", "N/A")}\n"
+    formatted_rubric += f"Description: {rubric_data.get("description", "N/A")}\n\n"
     
-    for criterion in rubric_data.get(\'criteria\', []):
-        formatted_rubric += f"Criteria: {criterion.get(\'title\', \'N/A\')} ({criterion.get(\'points\', 0)} points)\n"
-        formatted_rubric += f"Description: {criterion.get(\'description\', \'N/A\')}\n"
+    for criterion in rubric_data.get("criteria", []):
+        formatted_rubric += f"Criteria: {criterion.get("title", "N/A")} ({criterion.get("points", 0)} points)\n"
+        formatted_rubric += f"Description: {criterion.get("description", "N/A")}\n"
         formatted_rubric += "\n"
     return formatted_rubric
 
@@ -54,7 +54,7 @@ def grade_assignment(assignment_text, rubric_name="generic"):
     formatted_rubric = format_rubric_for_prompt(rubric_data)
 
     if not rubric_data:
-        return {"error": f"Rubric \'{rubric_name}\' not found or could not be loaded."}
+        return {"error": f"Rubric {rubric_name} not found or could not be loaded."}
 
     prompt = f"""You are an AI assistant acting as a Professional Lecturer or a Senior Teacher. Your task is to grade assignments based on the provided rubric. 
     
