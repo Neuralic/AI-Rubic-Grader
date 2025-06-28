@@ -61,20 +61,20 @@ def grade_assignment(assignment_text, rubric_name="generic"):
     Here is the rubric for the assignment:
     {formatted_rubric}
 
-    Here is the student\"s assignment:
+    Here is the student's assignment:
     {assignment_text}
 
     Please provide a detailed grading based on the rubric, including a score for each criterion and overall feedback. 
     Format your response as a JSON object with the following keys:
-    - \"student_name\": [Student's Name, extracted from the assignment if possible, otherwise 'Unknown']
-    - \"overall_grade\": [Overall percentage grade, e.g., '85%']
-    - \"feedback\": [Overall comprehensive feedback]
-    - \"criteria_scores\": [
+    - "student_name": [Student's Name, extracted from the assignment if possible, otherwise 'Unknown']
+    - "overall_grade": [Overall percentage grade, e.g., '85%']
+    - "feedback": [Overall comprehensive feedback]
+    - "criteria_scores": [
         {
-            \"criterion\": [Criterion Name],
-            \"score\": [Score for this criterion],
-            \"justification\": [Brief justification based on the rubric and submission],
-            \"detalle\": [Where points were lost, if applicable]
+            "criterion": [Criterion Name],
+            "score": [Score for this criterion],
+            "justification": [Brief justification based on the rubric and submission],
+            "detalle": [Where points were lost, if applicable]
         }
         // ... for each criterion
     ]
@@ -118,13 +118,11 @@ def grade_assignment(assignment_text, rubric_name="generic"):
 
 if __name__ == "__main__":
     # Example usage:
-    sample_assignment = """The student solved the quadratic equation x^2 - 4x + 4 = 0 by factoring. They correctly identified that the equation factors to (x-2)^2 = 0, and thus x=2. The steps were clear and easy to follow. However, they did not show any work for how they arrived at the factored form.
-"""
+    sample_assignment = """The student solved the quadratic equation x^2 - 4x + 4 = 0 by factoring. They correctly identified that the equation factors to (x-2)^2 = 0, and thus x=2. The steps were clear and easy to follow. However, they did not show any work for how they arrived at the factored form.\n"""
     feedback = grade_assignment(sample_assignment, "generic")
     print(feedback)
 
-    sample_assignment_history = """The essay discusses the causes of World War I. It mentions the assassination of Archduke Franz Ferdinand and the alliance system. However, it lacks in-depth analysis of other contributing factors like imperialism and militarism. The essay is well-structured but has some grammatical errors.
-"""
+    sample_assignment_history = """The essay discusses the causes of World War I. It mentions the assassination of Archduke Franz Ferdinand and the alliance system. However, it lacks in-depth analysis of other contributing factors like imperialism and militarism. The essay is well-structured but has some grammatical errors.\n"""
     feedback_history = grade_assignment(sample_assignment_history, "generic")
     print(feedback_history)
 
