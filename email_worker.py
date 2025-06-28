@@ -128,7 +128,9 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
         # Check if grading_result is an error dictionary
         if isinstance(grading_result, dict) and "error" in grading_result:
             print(f"Error during grading: {grading_result["error"]}")
-            send_email_error(recipient_email, original_subject, grading_result["error"])
+            # Ensure the error message is a plain string before passing
+            error_msg_to_send = str(grading_result["error"])
+            send_email_error(recipient_email, original_subject, error_msg_to_send)
             return
 
         print(f"Generated rubric feedback: {json.dumps(grading_result, indent=2)}")
@@ -155,7 +157,9 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
 
     except Exception as e:
         print(f"Error processing and responding to PDF {pdf_path}: {e}")
-        send_email_error(recipient_email, original_subject, e)
+        # Ensure the error message is a plain string before passing
+        error_msg_to_send = str(e)
+        send_email_error(recipient_email, original_subject, error_msg_to_send)
 
 def send_email_feedback(recipient_email, original_subject, feedback):
     try:
