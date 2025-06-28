@@ -50,25 +50,31 @@ def check_inbox_periodically():
 
                 has_pdf_attachment = False
                 for part in msg.walk():
-                    print(f"Checking part: {part.get_content_type()}")
-                    if part.get_content_maintype() == "application" and part.get_content_subtype() == "pdf":
-                        has_pdf_attachment = True
-                        filename = part.get_filename()
-                        if filename:
-                            filepath = os.path.join(INCOMING_DIR, filename)
-                            print(f"Identified PDF attachment: {filename}. Saving to {filepath}")
-                            with open(filepath, "wb") as f:
-                                f.write(part.get_payload(decode=True))
-                            print(f"Downloaded PDF: {filename}")
+                    try:
+                        print(f"Checking part: {part.get_content_type()}")
+                        if part.get_content_maintype() == "application" and part.get_content_subtype() == "pdf":
+                            has_pdf_attachment = True
+                            filename = part.get_filename()
+                            if filename:
+                                filepath = os.path.join(INCOMING_DIR, filename)
+                                print(f"Identified PDF attachment: {filename}. Saving to {filepath}")
+                                with open(filepath, "wb") as f:
+                                    f.write(part.get_payload(decode=True))
+                                print(f"Downloaded PDF: {filename}")
 
-                            # Process PDF, grade, and send email
-                            process_and_respond(filepath, sender, subject)
+                                # Process PDF, grade, and send email
+                                process_and_respond(filepath, sender, subject)
+                            else:
+                                print("PDF attachment found but no filename.")
+                        elif part.get_content_maintype() == "multipart":
+                            print("Multipart email part, continuing to walk.")
                         else:
-                            print("PDF attachment found but no filename.")
-                    elif part.get_content_maintype() == "multipart":
-                        print("Multipart email part, continuing to walk.")
-                    else:
-                        print(f"Skipping non-PDF part: {part.get_content_type()}")
+                            print(f"Skipping non-PDF part: {part.get_content_type()}")
+                    except AttributeError as ae:
+                        print(f"AttributeError when processing email part: {ae}. Part type: {type(part)}. Part content: {part}")
+                        print("This part might not be a valid email.message.Message object.")
+                    except Exception as part_e:
+                        print(f"Unexpected error when processing email part: {part_e}. Part type: {type(part)}")
                 
                 if not has_pdf_attachment:
                     print(f"No PDF attachment found in email from {sender} with subject: {subject}")
