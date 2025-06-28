@@ -61,21 +61,21 @@ def grade_assignment(assignment_text, rubric_name="generic"):
     Here is the rubric for the assignment:
     {formatted_rubric}
 
-    Here is the student\'s assignment:
+    Here is the student\"s assignment:
     {assignment_text}
 
     Please provide a detailed grading based on the rubric, including a score for each criterion and overall feedback. 
     Your response MUST be a valid JSON object ONLY. Do NOT include any other text, explanations, or formatting outside the JSON object. 
     The JSON object should have the following keys:
-    - "student_name": [Student\'s Name, extracted from the assignment if possible, otherwise \'Unknown\']
-    - "overall_grade": [Overall percentage grade, e.g., \'85%\']
-    - "feedback": [Overall comprehensive feedback]
-    - "criteria_scores": [
+    - \"student_name\": [Student\"s Name, extracted from the assignment if possible, otherwise \"Unknown\"]
+    - \"overall_grade\": [Overall percentage grade, e.g., \"85%\"]
+    - \"feedback\": [Overall comprehensive feedback]
+    - \"criteria_scores\": [
         {
-            "criterion": [Criterion Name],
-            "score": [Score for this criterion],
-            "justification": [Brief justification based on the rubric and submission],
-            "detalle": [Where points were lost, if applicable]
+            \"criterion\": [Criterion Name],
+            \"score\": [Score for this criterion],
+            \"justification\": [Brief justification based on the rubric and submission],
+            \"detalle\": [Where points were lost, if applicable]
         }
         // ... for each criterion
     ]
@@ -102,16 +102,18 @@ def grade_assignment(assignment_text, rubric_name="generic"):
             json_string = raw_response_text[json_start : json_end + 1]
             try:
                 json_response = json.loads(json_string)
+                print(f"Successfully parsed JSON: {json_response}")
                 return json_response
             except json.JSONDecodeError as e:
                 print(f"Error decoding extracted JSON: {e}")
                 print(f"Extracted JSON string: {json_string}")
-                return {"error": "Failed to parse AI response as JSON", "raw_response": raw_response_text}
+                return {"error": f"Failed to parse AI response as JSON: {e}", "raw_response": raw_response_text}
         else:
             print(f"No valid JSON object found in AI response: {raw_response_text}")
             return {"error": "No valid JSON object found in AI response", "raw_response": raw_response_text}
 
     except Exception as e:
+        print(f"Error during grading: {e}")
         return {"error": f"Error during grading: {e}"}
 
 if __name__ == "__main__":
@@ -123,4 +125,5 @@ if __name__ == "__main__":
     sample_assignment_history = """The essay discusses the causes of World War I. It mentions the assassination of Archduke Franz Ferdinand and the alliance system. However, it lacks in-depth analysis of other contributing factors like imperialism and militarism. The essay is well-structured but has some grammatical errors.\n"""
     feedback_history = grade_assignment(sample_assignment_history, "generic")
     print(feedback_history)
+
 
