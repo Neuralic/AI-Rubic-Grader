@@ -61,13 +61,14 @@ def grade_assignment(assignment_text, rubric_name="generic"):
     Here is the rubric for the assignment:
     {formatted_rubric}
 
-    Here is the student's assignment:
+    Here is the student\'s assignment:
     {assignment_text}
 
     Please provide a detailed grading based on the rubric, including a score for each criterion and overall feedback. 
-    Format your response as a JSON object with the following keys:
-    - "student_name": [Student's Name, extracted from the assignment if possible, otherwise 'Unknown']
-    - "overall_grade": [Overall percentage grade, e.g., '85%']
+    Your response MUST be a valid JSON object ONLY. Do NOT include any other text, explanations, or formatting outside the JSON object. 
+    The JSON object should have the following keys:
+    - "student_name": [Student\'s Name, extracted from the assignment if possible, otherwise \'Unknown\']
+    - "overall_grade": [Overall percentage grade, e.g., \'85%\']
     - "feedback": [Overall comprehensive feedback]
     - "criteria_scores": [
         {
@@ -78,8 +79,6 @@ def grade_assignment(assignment_text, rubric_name="generic"):
         }
         // ... for each criterion
     ]
-    
-    Ensure the output is a valid JSON object only, with no additional text or formatting outside the JSON.
     """
 
     try:
@@ -87,32 +86,31 @@ def grade_assignment(assignment_text, rubric_name="generic"):
         print(f"Type of response from model.generate_content: {type(response)}")
         print(f"Content of response from model.generate_content: {response}")
 
+        raw_response_text = ""
         if hasattr(response, 'text'):
-            try:
-                # Attempt to parse the response text as JSON
-                json_response = json.loads(response.text)
-                return json_response
-            except json.JSONDecodeError as e:
-                print(f"Error decoding JSON from model response: {e}")
-                print(f"Raw model response text: {response.text}")
-                return {"error": "Failed to parse AI response as JSON", "raw_response": response.text}
+            raw_response_text = response.text
         elif isinstance(response, str):
-            try:
-                json_response = json.loads(response)
-                return json_response
-            except json.JSONDecodeError as e:
-                print(f"Error decoding JSON from model response (string): {e}")
-                print(f"Raw model response (string): {response}")
-                return {"error": "Failed to parse AI response as JSON", "raw_response": response}
+            raw_response_text = response
         else:
-            # Fallback for unexpected types, try to convert to string and then parse JSON
+            raw_response_text = str(response)
+
+        # Attempt to extract JSON from the raw response text
+        json_start = raw_response_text.find('{')
+        json_end = raw_response_text.rfind('}')
+
+        if json_start != -1 and json_end != -1 and json_end > json_start:
+            json_string = raw_response_text[json_start : json_end + 1]
             try:
-                json_response = json.loads(str(response))
+                json_response = json.loads(json_string)
                 return json_response
             except json.JSONDecodeError as e:
-                print(f"Error decoding JSON from model response (other type): {e}")
-                print(f"Raw model response (other type): {str(response)}")
-                return {"error": "Failed to parse AI response as JSON", "raw_response": str(response)}
+                print(f"Error decoding extracted JSON: {e}")
+                print(f"Extracted JSON string: {json_string}")
+                return {"error": "Failed to parse AI response as JSON", "raw_response": raw_response_text}
+        else:
+            print(f"No valid JSON object found in AI response: {raw_response_text}")
+            return {"error": "No valid JSON object found in AI response", "raw_response": raw_response_text}
+
     except Exception as e:
         return {"error": f"Error during grading: {e}"}
 
