@@ -56,29 +56,36 @@ def grade_assignment(assignment_text, rubric_name="generic"):
     if not rubric_data:
         return {"error": f"Rubric {rubric_name} not found or could not be loaded."}
 
+    # Define the JSON structure as a Python dictionary
+    json_structure = {
+        "student_name": "[Student's Name, extracted from the assignment if possible, otherwise 'Unknown']",
+        "overall_grade": "[Overall percentage grade, e.g., '85%']",
+        "feedback": "[Overall comprehensive feedback]",
+        "criteria_scores": [
+            {
+                "criterion": "[Criterion Name]",
+                "score": "[Score for this criterion]",
+                "justification": "[Brief justification based on the rubric and submission]",
+                "detalle": "[Where points were lost, if applicable]"
+            }
+        ]
+    }
+
+    # Convert the dictionary to a JSON string, handling all escaping automatically
+    json_format_instruction = json.dumps(json_structure, indent=4)
+
     prompt = f"""You are an AI assistant acting as a Professional Lecturer or a Senior Teacher. Your task is to grade assignments based on the provided rubric. 
     
     Here is the rubric for the assignment:
     {formatted_rubric}
 
-    Here is the student\"s assignment:
+    Here is the student's assignment:
     {assignment_text}
 
     Please provide a detailed grading based on the rubric, including a score for each criterion and overall feedback. 
     Your response MUST be a valid JSON object ONLY. Do NOT include any other text, explanations, or formatting outside the JSON object. 
-    The JSON object should have the following keys:
-    - \"student_name\": [Student\"s Name, extracted from the assignment if possible, otherwise \"Unknown\"]
-    - \"overall_grade\": [Overall percentage grade, e.g., \"85%\"]
-    - \"feedback\": [Overall comprehensive feedback]
-    - \"criteria_scores\": [
-        {
-            \"criterion\": [Criterion Name],
-            \"score\": [Score for this criterion],
-            \"justification\": [Brief justification based on the rubric and submission],
-            \"detalle\": [Where points were lost, if applicable]
-        }
-        // ... for each criterion
-    ]
+    The JSON object should strictly follow this format:
+{json_format_instruction}
     """
 
     try:
