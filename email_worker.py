@@ -173,7 +173,9 @@ def send_email_feedback(recipient_email, original_subject, feedback):
 
 def send_email_error(recipient_email, original_subject, error_message):
     try:
-        error_body = f"An error occurred while processing your assignment (Subject: {original_subject}):\n\n{error_message}\n\nPlease try again or contact support."
+        # Escape curly braces in the error_message itself
+        escaped_error_message = error_message.replace("{", "{{").replace("}", "}}")
+        error_body = f"An error occurred while processing your assignment (Subject: {original_subject}):\n\n{escaped_error_message}\n\nPlease try again or contact support."
         msg = MIMEText(error_body)
         msg["Subject"] = f"Re: {original_subject} - Error Processing Assignment"
         msg["From"] = EMAIL
