@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from pdf_processor import process_single_pdf
 from grader import grade_assignment
 from grader_utils import write_result_to_file
+from datetime import datetime, date, timedelta
 
 load_dotenv()
 
@@ -25,8 +26,14 @@ def check_inbox_periodically():
             mail.login(EMAIL, PASSWORD)
             mail.select("inbox")
 
-            status, email_ids = mail.search(None, "UNSEEN")
-            print(f"Found {len(email_ids[0].split())} unseen emails.")
+            # Calculate date for 24 hours ago
+            date_24_hours_ago = (date.today() - timedelta(days=1)).strftime("%d-%b-%Y")
+            
+            # Search for unseen emails from the last 24 hours
+            status, email_ids = mail.search(None, 
+                                            f'(UNSEEN SENTSINCE "{date_24_hours_ago}")')
+            
+            print(f"Found {len(email_ids[0].split())} unseen emails from the last 24 hours.")
             for email_id in email_ids[0].split():
                 status, msg_data = mail.fetch(email_id, "(RFC822)")
                 msg = email.message_from_bytes(msg_data[0][1])
