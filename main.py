@@ -50,6 +50,3 @@ async def startup_event():
     thread = threading.Thread(target=check_inbox_periodically)
     thread.daemon = True
     thread.start()
-
-
-
