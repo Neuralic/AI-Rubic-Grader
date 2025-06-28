@@ -127,8 +127,8 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
         
         # Check if grading_result is an error dictionary
         if isinstance(grading_result, dict) and "error" in grading_result:
-            print(f"Error during grading: {grading_result['error']}")
-            send_email_error(recipient_email, original_subject, grading_result['error'])
+            print(f"Error during grading: {grading_result["error"]}")
+            send_email_error(recipient_email, original_subject, grading_result["error"])
             return
 
         print(f"Generated rubric feedback: {json.dumps(grading_result, indent=2)}")
@@ -138,13 +138,17 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
         print(f"Grading result saved.")
 
         # Format feedback for email
-        feedback_for_email = f"Overall Grade: {grading_result.get('overall_grade', 'N/A')}\n\n"
+        feedback_for_email = f"Overall Grade: {grading_result.get("overall_grade", "N/A")}\n\n"
         feedback_for_email += "Criteria Scores:\n"
-        for criterion in grading_result.get('criteria_scores', []):
-            feedback_for_email += f"- {criterion.get('criterion', 'N/A')}: {criterion.get('score', 'N/A')} - {criterion.get('justification', 'N/A')}\n"
-            if criterion.get('detalle'):
-                feedback_for_email += f"  (Points lost: {criterion['detalle']})\n"
-        feedback_for_email += f"\nOverall Feedback: {grading_result.get('feedback', 'N/A')}"
+        for criterion in grading_result.get("criteria_scores", []):
+            # Escape curly braces in justification and detalle
+            justification = criterion.get("justification", "N/A").replace("{", "{{").replace("}", "}}")
+            detalle = criterion.get("detalle", "").replace("{", "{{").replace("}", "}}")
+
+            feedback_for_email += f"- {criterion.get("criterion", "N/A")}: {criterion.get("score", "N/A")} - {justification}\n"
+            if detalle:
+                feedback_for_email += f"  (Points lost: {detalle})\n"
+        feedback_for_email += f"\nOverall Feedback: {grading_result.get("feedback", "N/A")}"
 
         send_email_feedback(recipient_email, original_subject, feedback_for_email)
         print(f"Feedback email sent to {recipient_email}")
