@@ -12,6 +12,13 @@ if not os.path.exists(INCOMING_DIR):
     os.makedirs(INCOMING_DIR)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Add a print statement to check if the API key is loaded
+if GEMINI_API_KEY:
+    print("GEMINI_API_KEY loaded successfully.")
+else:
+    print("GEMINI_API_KEY not found. Please ensure it's set in your environment variables.")
+
 genai.configure(api_key=GEMINI_API_KEY)
 
 model = genai.GenerativeModel("gemini-pro")
@@ -76,7 +83,7 @@ Overall Feedback: Provide constructive feedback on strengths and areas for impro
         return "No rubric found for this course."
 
 def grade_assignment(assignment_text):
-    # For now, let's assume the course is 'math' for demonstration purposes
+    # For now, let\'s assume the course is \'math\' for demonstration purposes
     course_name = "math"
     rubric = load_rubric(course_name)
 
@@ -88,7 +95,7 @@ def grade_assignment(assignment_text):
     Here is the rubric for the {course_name} assignment:
     {rubric}
 
-    Here is the student's assignment:
+    Here is the student\'s assignment:
     {assignment_text}
 
     Please provide a detailed grading based on the rubric, including a score for each criterion and overall feedback. 
@@ -101,7 +108,7 @@ def grade_assignment(assignment_text):
         print(f"Type of response from model.generate_content: {type(response)}")
         print(f"Content of response from model.generate_content: {response}")
 
-        if hasattr(response, 'text'):
+        if hasattr(response, \'text\'):
             return response.text
         elif isinstance(response, str):
             return response
@@ -111,15 +118,15 @@ def grade_assignment(assignment_text):
     except Exception as e:
         return f"Error during grading: {e}"
 
-if __name__ == '__main__':
+if __name__ == \"__main__\":
     # Example usage:
-    sample_assignment = """The student solved the quadratic equation x^2 - 4x + 4 = 0 by factoring. They correctly identified that the equation factors to (x-2)^2 = 0, and thus x=2. The steps were clear and easy to follow. However, they did not show any work for how they arrived at the factored form.
-"""
+    sample_assignment = \"\"\"The student solved the quadratic equation x^2 - 4x + 4 = 0 by factoring. They correctly identified that the equation factors to (x-2)^2 = 0, and thus x=2. The steps were clear and easy to follow. However, they did not show any work for how they arrived at the factored form.
+\"\"\"
     feedback = grade_assignment(sample_assignment)
     print(feedback)
 
-    sample_assignment_history = """The essay discusses the causes of World War I. It mentions the assassination of Archduke Franz Ferdinand and the alliance system. However, it lacks in-depth analysis of other contributing factors like imperialism and militarism. The essay is well-structured but has some grammatical errors.
-"""
+    sample_assignment_history = \"\"\"The essay discusses the causes of World War I. It mentions the assassination of Archduke Franz Ferdinand and the alliance system. However, it lacks in-depth analysis of other contributing factors like imperialism and militarism. The essay is well-structured but has some grammatical errors.
+\"\"\"
     feedback_history = grade_assignment(sample_assignment_history)
     print(feedback_history)
 
