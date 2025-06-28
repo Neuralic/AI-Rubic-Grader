@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +8,7 @@ from pdf_processor import process_single_pdf
 from grader import grade_assignment
 import threading
 import os
+import shutil
 
 app = FastAPI()
 
@@ -20,7 +21,7 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="."), name="static")
+app.mount("/static", StaticFiles(directory="./static"), name="static")
 
 @app.get("/")
 async def read_root():
