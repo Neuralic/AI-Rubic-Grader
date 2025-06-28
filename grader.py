@@ -33,7 +33,8 @@ def list_available_models():
 # Call this function at startup to log available models
 list_available_models()
 
-model = genai.GenerativeModel("gemini-pro")
+# Updated model name based on available models from Render logs
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 def load_rubric(course_name):
     # Hardcoded sample for now - later load from file or DB
