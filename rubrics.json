@@ -1,0 +1,29 @@
+{
+    "generic": {
+        "name": "Generic Assignment Rubric",
+        "description": "A general rubric for various assignments.",
+        "criteria": [
+            {
+                "title": "Content Accuracy",
+                "points": 40,
+                "description": "All facts, concepts, and information presented are accurate and well-supported."
+            },
+            {
+                "title": "Clarity and Organization",
+                "points": 30,
+                "description": "The assignment is logically organized, clear, and easy to follow. Ideas are presented coherently."
+            },
+            {
+                "title": "Critical Thinking and Analysis",
+                "points": 20,
+                "description": "Demonstrates strong critical thinking and insightful analysis of the subject matter."
+            },
+            {
+                "title": "Presentation and Communication",
+                "points": 10,
+                "description": "Solution is well-organized, legible, and clearly communicated."
+            }
+        ]
+    }
+}
+
