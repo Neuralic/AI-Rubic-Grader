@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from email_worker import check_inbox_periodically
 from grader_utils import read_all_results
-from pdf_processor import process_all_pdfs
+from pdf_processor import process_single_pdf
 from grader import grade_assignment
 import threading
 import os
@@ -19,30 +19,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
+# Mount static files
+app.mount("/static", StaticFiles(directory="./static"), name="static")
 
-@app.on_event("startup")
-def start_background_tasks():
-    print("🚀 Background inbox checker started.")
-    threading.Thread(target=check_inbox_periodically, daemon=True).start()
-
-@app.get("/", response_class=HTMLResponse)
-def get_index():
+@app.get("/")
+async def read_root():
     return FileResponse("index.html")
 
-@app.get("/results")
-def get_results():
-    return read_all_results()
+@app.post("/upload-pdf/")
+async def upload_pdf(file: UploadFile = File(...)):
+    file_path = f"./{file.filename}"
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Process the PDF and extract text
+    text = process_single_pdf(file_path)    
+    # Grade the assignment
+    rubric_feedback = grade_assignment(text)
+    
+    return {"filename": file.filename, "rubric_feedback": rubric_feedback}
 
-@app.get("/grade-all")
-def grade_all():
-    students = process_all_pdfs()
-    results = []
-    for student_data in students:
-        result = grade_assignment(student_data)
-        results.append({
-            "name": student_data["name"],
-            "course": student_data["course"],
-            "grade_output": result["grade_output"]
-        })
+@app.get("/results/")
+async def get_results():
+    results = read_all_results()
     return results
+
+# Start the email worker in a separate thread
+@app.on_event("startup")
+async def startup_event():
+    thread = threading.Thread(target=check_inbox_periodically)
+    thread.daemon = True
+    thread.start()
+
+
+
