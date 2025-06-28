@@ -20,8 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="./static"), name="static")
+# Serve static files from the root directory
+app.mount("/", StaticFiles(directory="."), name="static")
 
 @app.get("/")
 async def read_root():
