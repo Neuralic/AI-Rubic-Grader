@@ -96,9 +96,10 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
         print(f"Generated rubric feedback length: {len(rubric_feedback)}")
 
         # Save the result
-        result_filename = os.path.basename(pdf_path).replace(".pdf", "_graded.txt")
-        write_result_to_file(result_filename, rubric_feedback)
-        print(f"Grading result saved to {result_filename}")
+        # The write_result_to_file function expects only the result (rubric_feedback)
+        # The filename is handled internally by the grader_utils.py
+        write_result_to_file(rubric_feedback)
+        print(f"Grading result saved.")
 
         send_email_feedback(recipient_email, original_subject, rubric_feedback)
         print(f"Feedback email sent to {recipient_email}")
