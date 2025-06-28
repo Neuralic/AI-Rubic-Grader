@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="./static"), name="static")
+app.mount("/static", StaticFiles(directory="."), name="static")
 
 @app.get("/")
 async def read_root():
