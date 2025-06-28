@@ -10,6 +10,7 @@ from pdf_processor import process_single_pdf
 from grader import grade_assignment
 from grader_utils import write_result_to_file
 from datetime import datetime, date, timedelta
+import json
 
 load_dotenv()
 
@@ -18,6 +19,34 @@ PASSWORD = os.getenv("EMAIL_PASSWORD")
 INCOMING_DIR = "incoming_pdfs"
 
 os.makedirs(INCOMING_DIR, exist_ok=True)
+
+# Generic rubric for any course
+GENERIC_RUBRIC = """Rubric for Assignment:
+
+Criteria 1: Content Accuracy (40 points)
+- 40 points: All facts, concepts, and information presented are accurate and well-supported.
+- 30 points: Mostly accurate, with minor factual errors or less robust support.
+- 20 points: Several inaccuracies or insufficient evidence to support claims.
+- 10 points: Significant inaccuracies or lack of factual basis.
+
+Criteria 2: Clarity and Organization (30 points)
+- 30 points: The assignment is logically organized, clear, and easy to follow. Ideas are presented coherently.
+- 20 points: Generally organized, but may have minor issues with flow or coherence.
+- 10 points: Somewhat disorganized, with unclear transitions or a weak overall structure.
+- 5 points: Disorganized and difficult to follow.
+
+Criteria 3: Critical Thinking and Analysis (20 points)
+- 20 points: Demonstrates strong critical thinking and insightful analysis of the subject matter.
+- 15 points: Shows some critical thinking, but analysis may be less developed or occasionally lack depth.
+- 10 points: Limited critical thinking or superficial analysis.
+- 5 points: Lacks critical thinking or provides incorrect reasoning.
+
+Criteria 4: Presentation and Communication (10 points)
+- 10 points: Solution is well-organized, legible, and easy to follow. All steps are clearly communicated.
+- 0 points: Solution is disorganized and illegible, making it difficult to understand.
+
+Overall Feedback: Provide constructive feedback on strengths and areas for improvement. Suggest specific actions for the student to take to improve their understanding or performance.
+"""
 
 def check_inbox_periodically():
     while True:
@@ -92,16 +121,32 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
         print(f"Attempting to process PDF: {pdf_path}")
         extracted_text = process_single_pdf(pdf_path)
         print(f"Extracted text length: {len(extracted_text)}")
-        rubric_feedback = grade_assignment(extracted_text)
-        print(f"Generated rubric feedback length: {len(rubric_feedback)}")
+        
+        # grade_assignment now returns a dictionary (JSON object)
+        grading_result = grade_assignment(extracted_text, "generic")
+        
+        # Check if grading_result is an error dictionary
+        if isinstance(grading_result, dict) and "error" in grading_result:
+            print(f"Error during grading: {grading_result['error']}")
+            send_email_error(recipient_email, original_subject, grading_result['error'])
+            return
 
-        # Save the result
-        # The write_result_to_file function expects only the result (rubric_feedback)
-        # The filename is handled internally by the grader_utils.py
-        write_result_to_file(rubric_feedback)
+        print(f"Generated rubric feedback: {json.dumps(grading_result, indent=2)}")
+
+        # Save the structured result
+        write_result_to_file(grading_result)
         print(f"Grading result saved.")
 
-        send_email_feedback(recipient_email, original_subject, rubric_feedback)
+        # Format feedback for email
+        feedback_for_email = f"Overall Grade: {grading_result.get('overall_grade', 'N/A')}\n\n"
+        feedback_for_email += "Criteria Scores:\n"
+        for criterion in grading_result.get('criteria_scores', []):
+            feedback_for_email += f"- {criterion.get('criterion', 'N/A')}: {criterion.get('score', 'N/A')} - {criterion.get('justification', 'N/A')}\n"
+            if criterion.get('detalle'):
+                feedback_for_email += f"  (Points lost: {criterion['detalle']})\n"
+        feedback_for_email += f"\nOverall Feedback: {grading_result.get('feedback', 'N/A')}"
+
+        send_email_feedback(recipient_email, original_subject, feedback_for_email)
         print(f"Feedback email sent to {recipient_email}")
 
     except Exception as e:
@@ -140,3 +185,5 @@ def send_email_error(recipient_email, original_subject, error_message):
 if __name__ == "__main__":
     print("Email worker started. Checking inbox periodically...")
     # check_inbox_periodically() # Uncomment to run directly for testing
+
+
