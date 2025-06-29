@@ -33,4 +33,3 @@ def read_all_results():
         return data
     return []
 
-
