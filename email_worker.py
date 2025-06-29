@@ -196,4 +196,3 @@ if __name__ == "__main__":
     print("Email worker started. Checking inbox periodically...")
     # check_inbox_periodically() # Uncomment to run directly for testing
 
-
