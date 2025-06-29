@@ -524,3 +524,209 @@ td {
     width: 100%;
   }
 }
+
+/* Logo Icon for Sidebar */
+.logo-icon {
+  width: 60px;
+  height: 60px;
+  background: white;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  color: var(--primary);
+  font-size: 2rem;
+}
+
+/* Upload Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: white;
+  margin: 5% auto;
+  border-radius: var(--card-radius);
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  padding: 20px 25px;
+  border-bottom: 1px solid var(--light-gray);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.close {
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+  color: var(--gray);
+  transition: var(--transition);
+}
+
+.close:hover {
+  color: var(--danger);
+}
+
+.modal-body {
+  padding: 25px;
+}
+
+.upload-area {
+  border: 2px dashed var(--light-gray);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: #fafafa;
+}
+
+.upload-area:hover, .upload-area.drag-over {
+  border-color: var(--primary);
+  background: rgba(67, 97, 238, 0.05);
+}
+
+.upload-icon {
+  font-size: 3rem;
+  color: var(--primary);
+  margin-bottom: 15px;
+}
+
+.upload-area h4 {
+  margin-bottom: 8px;
+  color: var(--dark);
+}
+
+.upload-area p {
+  color: var(--gray);
+  margin: 0;
+}
+
+.upload-progress {
+  text-align: center;
+  padding: 30px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--light-gray);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 15px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  width: 0%;
+  border-radius: 4px;
+  animation: progress 2s ease-in-out infinite;
+}
+
+@keyframes progress {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
+}
+
+.upload-result {
+  padding: 20px;
+  text-align: center;
+}
+
+.success-message {
+  color: var(--success);
+}
+
+.success-message i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.success-message h4 {
+  margin-bottom: 15px;
+  color: var(--dark);
+}
+
+.feedback-preview {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 15px;
+  text-align: left;
+}
+
+.error-message {
+  color: var(--danger);
+}
+
+.error-message i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.error-message h4 {
+  margin-bottom: 15px;
+  color: var(--dark);
+}
+
+/* Upload Button */
+.upload-btn {
+  background: var(--success);
+  margin-right: 10px;
+}
+
+.upload-btn:hover {
+  background: #05c48a;
+}
+
+/* Grade Badge */
+.grade-badge {
+  background: var(--success);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Improved Table Styling */
+.grade-cell {
+  font-weight: 600;
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 10% auto;
+    width: 95%;
+  }
+  
+  .upload-area {
+    padding: 25px;
+  }
+  
+  .upload-icon {
+    font-size: 2.5rem;
+  }
+}
