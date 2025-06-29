@@ -137,33 +137,21 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
 
         # Transform the result to match frontend expectations
 
-
         frontend_result = {
-
 
             "name": grading_result.get("student_name", "Unknown"),
 
-
-            "email": sender,
-
+            "email": recipient_email,
 
             "course": "Email Submission",
 
-
             "grade_output": f"Grade: {grading_result.get('overall_grade', 'N/A')}\n\nFeedback: {grading_result.get('feedback', 'No feedback available')}",\
-
 
             "timestamp": "",
 
-
             "criteria_scores": grading_result.get("criteria_scores", [])
 
-
         }
-
-
-        
-
 
         # Save the structured result
         write_result_to_file(frontend_result)
