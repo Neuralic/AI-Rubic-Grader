@@ -12,7 +12,9 @@
   <!-- Navigation Sidebar -->
   <div class="sidebar">
     <div class="logo-container">
-      <img src="https://cdn-icons-png.flaticon.com/512/3048/3048362.png" alt="logo" class="logo">
+      <div class="logo-icon">
+        <i class="fas fa-graduation-cap"></i>
+      </div>
       <h1>AI Assignment Grader</h1>
     </div>
     
@@ -23,12 +25,12 @@
           <span>Dashboard</span>
         </li>
         <li>
-          <i class="fas fa-cog"></i>
-          <span>Rubric Settings</span>
+          <i class="fas fa-upload"></i>
+          <span>Upload Assignment</span>
         </li>
         <li>
-          <i class="fas fa-calendar-alt"></i>
-          <span>Deadlines</span>
+          <i class="fas fa-cog"></i>
+          <span>Rubric Settings</span>
         </li>
         <li>
           <i class="fas fa-history"></i>
@@ -55,6 +57,10 @@
           <i class="fas fa-search"></i>
           <input type="text" placeholder="Search students...">
         </div>
+        <button class="btn upload-btn" onclick="openUploadModal()">
+          <i class="fas fa-upload"></i>
+          Upload PDF
+        </button>
         <button class="btn grade-all-btn">
           <i class="fas fa-bolt"></i>
           Grade All Submissions
@@ -119,6 +125,7 @@
             <tr>
               <th class="student-col">Student</th>
               <th>Course</th>
+              <th>Grade</th>
               <th>Feedback</th>
               <th>Status</th>
               <th>Actions</th>
@@ -139,6 +146,35 @@
     </div>
   </div>
 
+  <!-- Upload Modal -->
+  <div id="uploadModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Upload Assignment PDF</h3>
+        <span class="close" onclick="closeUploadModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <h4>Drag & Drop PDF here</h4>
+          <p>or click to browse</p>
+          <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+        </div>
+        <div id="uploadProgress" class="upload-progress" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p id="progressText">Uploading...</p>
+        </div>
+        <div id="uploadResult" class="upload-result" style="display: none;">
+          <!-- Results will be shown here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const resultsBody = document.getElementById("resultsBody");
     const courseFilter = document.getElementById("courseFilter");
@@ -146,9 +182,101 @@
     let refreshTimer = 10;
     let countdownInterval;
 
+    // Upload Modal Functions
+    function openUploadModal() {
+      document.getElementById("uploadModal").style.display = "block";
+    }
+
+    function closeUploadModal() {
+      document.getElementById("uploadModal").style.display = "none";
+      document.getElementById("uploadProgress").style.display = "none";
+      document.getElementById("uploadResult").style.display = "none";
+      document.getElementById("uploadArea").style.display = "block";
+    }
+
+    // File Upload Setup
+    const uploadArea = document.getElementById("uploadArea");
+    const fileInput = document.getElementById("fileInput");
+
+    uploadArea.addEventListener("click", () => fileInput.click());
+    
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.classList.add("drag-over");
+    });
+    
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.classList.remove("drag-over");
+    });
+    
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove("drag-over");
+      const files = e.dataTransfer.files;
+      if (files.length > 0 && files[0].type === "application/pdf") {
+        handleFileUpload(files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        handleFileUpload(e.target.files[0]);
+      }
+    });
+
+    async function handleFileUpload(file) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      document.getElementById("uploadArea").style.display = "none";
+      document.getElementById("uploadProgress").style.display = "block";
+
+      try {
+        const response = await fetch("/upload-pdf/", {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        document.getElementById("uploadProgress").style.display = "none";
+        document.getElementById("uploadResult").style.display = "block";
+        
+        document.getElementById("uploadResult").innerHTML = `
+          <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <h4>Assignment Graded Successfully!</h4>
+            <p><strong>Student:</strong> ${result.student_name}</p>
+            <p><strong>Grade:</strong> ${result.overall_grade}</p>
+            <div class="feedback-preview">
+              <strong>Feedback:</strong>
+              <p>${result.feedback}</p>
+            </div>
+          </div>
+        `;
+        
+        // Refresh results
+        setTimeout(() => {
+          fetchResults();
+          closeUploadModal();
+        }, 3000);
+        
+      } catch (error) {
+        document.getElementById("uploadProgress").style.display = "none";
+        document.getElementById("uploadResult").style.display = "block";
+        document.getElementById("uploadResult").innerHTML = `
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <h4>Upload Failed</h4>
+            <p>Error: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
     async function fetchResults() {
       try {
-        const res = await fetch("/results");
+        const res = await fetch("/results/");
         const data = await res.json();
         
         // Update stats
@@ -197,7 +325,7 @@
       if (data.length === 0) {
         resultsBody.innerHTML = `
           <tr>
-            <td colspan="5" class="empty-state">
+            <td colspan="6" class="empty-state">
               <i class="fas fa-inbox"></i>
               <p>No assignments graded yet</p>
             </td>
@@ -209,6 +337,10 @@
       data.forEach(entry => {
         const statusClass = entry.grade_output ? "status-complete" : "status-pending";
         const statusText = entry.grade_output ? "Reviewed" : "Pending";
+        
+        // Extract grade from grade_output
+        const gradeMatch = entry.grade_output ? entry.grade_output.match(/Grade:\s*([^\\n]+)/) : null;
+        const grade = gradeMatch ? gradeMatch[1] : "N/A";
         
         resultsBody.innerHTML += `
           <tr>
@@ -222,9 +354,12 @@
               </div>
             </td>
             <td class="course-cell">${entry.course || "N/A"}</td>
+            <td class="grade-cell">
+              <span class="grade-badge">${grade}</span>
+            </td>
             <td class="feedback-cell">
               ${entry.grade_output 
-                ? `<div class="feedback-content">${entry.grade_output}</div>` 
+                ? `<div class="feedback-content">${entry.grade_output.replace(/Grade:[^\\n]+\\n\\n?/, '')}</div>` 
                 : '<div class="status-badge status-pending">Pending AI Review</div>'}
             </td>
             <td class="status-cell">
@@ -267,7 +402,7 @@
       btn.disabled = true;
       
       try {
-        const response = await fetch("/grade-all");
+        const response = await fetch("/grade-all/", { method: "POST" });
         const data = await response.json();
         console.log("Grading complete:", data);
         fetchResults();
@@ -279,6 +414,14 @@
         btn.innerHTML = '<i class="fas fa-bolt"></i> Grade All Submissions';
         btn.disabled = false;
       }, 2000);
+    });
+
+    // Close modal when clicking outside
+    window.addEventListener("click", (e) => {
+      const modal = document.getElementById("uploadModal");
+      if (e.target === modal) {
+        closeUploadModal();
+      }
     });
 
     // Initialize
