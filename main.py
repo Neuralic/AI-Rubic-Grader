@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from email_worker import check_inbox_periodically
+from email_worker import check_inbox_periodically, GENERIC_RUBRIC
 from grader_utils import read_all_results
 from pdf_processor import process_single_pdf
 from grader import grade_assignment
@@ -21,10 +21,8 @@ app.add_middleware(
 )
 
 # Serve static files from the root directory
-# This should serve index.html and styles.css directly from the root
+# This will serve index.html and style.css directly from the root
 app.mount("/", StaticFiles(directory="."), name="static")
-
-# Removed the explicit @app.get("/") route as StaticFiles(directory=".") should handle index.html
 
 @app.post("/upload-pdf/")
 async def upload_pdf(file: UploadFile = File(...)):
@@ -34,8 +32,8 @@ async def upload_pdf(file: UploadFile = File(...)):
     
     # Process the PDF and extract text
     text = process_single_pdf(file_path)    
-    # Grade the assignment
-    rubric_feedback = grade_assignment(text)
+    # Grade the assignment, passing the generic rubric
+    rubric_feedback = grade_assignment(text, GENERIC_RUBRIC)
     
     return {"filename": file.filename, "rubric_feedback": rubric_feedback}
 
@@ -50,3 +48,5 @@ async def startup_event():
     thread = threading.Thread(target=check_inbox_periodically)
     thread.daemon = True
     thread.start()
+
+
