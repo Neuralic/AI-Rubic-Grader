@@ -135,8 +135,38 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
 
         print(f"Generated rubric feedback: {json.dumps(grading_result, indent=2)}")
 
+        # Transform the result to match frontend expectations
+
+
+        frontend_result = {
+
+
+            "name": grading_result.get("student_name", "Unknown"),
+
+
+            "email": sender,
+
+
+            "course": "Email Submission",
+
+
+            "grade_output": f"Grade: {grading_result.get('overall_grade', 'N/A')}\n\nFeedback: {grading_result.get('feedback', 'No feedback available')}",\
+
+
+            "timestamp": "",
+
+
+            "criteria_scores": grading_result.get("criteria_scores", [])
+
+
+        }
+
+
+        
+
+
         # Save the structured result
-        write_result_to_file(grading_result)
+        write_result_to_file(frontend_result)
         print(f"Grading result saved.")
 
         # Format feedback for email
@@ -195,4 +225,3 @@ def send_email_error(recipient_email, original_subject, error_message):
 if __name__ == "__main__":
     print("Email worker started. Checking inbox periodically...")
     # check_inbox_periodically() # Uncomment to run directly for testing
-
