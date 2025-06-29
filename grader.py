@@ -132,5 +132,3 @@ if __name__ == "__main__":
     sample_assignment_history = """The essay discusses the causes of World War I. It mentions the assassination of Archduke Franz Ferdinand and the alliance system. However, it lacks in-depth analysis of other contributing factors like imperialism and militarism. The essay is well-structured but has some grammatical errors.\n"""
     feedback_history = grade_assignment(sample_assignment_history, "generic")
     print(feedback_history)
-
-
