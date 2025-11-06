@@ -7,10 +7,13 @@ from email.mime.text import MIMEText
 from email.header import decode_header
 from dotenv import load_dotenv
 from pdf_processor import process_single_pdf
-from grader import grade_assignment
+from grader import analyze_document
 from grader_utils import write_result_to_file
 from datetime import datetime, date, timedelta
 import json
+import re
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 load_dotenv()
 
@@ -20,33 +23,28 @@ INCOMING_DIR = "incoming_pdfs"
 
 os.makedirs(INCOMING_DIR, exist_ok=True)
 
-# Generic rubric for any course
-GENERIC_RUBRIC = """Rubric for Assignment:
+# Thread pool for parallel processing
+executor = ThreadPoolExecutor(max_workers=3)
 
-Criteria 1: Content Accuracy (40 points)
-- 40 points: All facts, concepts, and information presented are accurate and well-supported.
-- 30 points: Mostly accurate, with minor factual errors or less robust support.
-- 20 points: Several inaccuracies or insufficient evidence to support claims.
-- 10 points: Significant inaccuracies or lack of factual basis.
+def extract_email_address(sender_string):
+    """Extract just the email address from a sender string like 'Name <email@example.com>'"""
+    # Try to find email in angle brackets first
+    match = re.search(r'<(.+?)>', sender_string)
+    if match:
+        return match.group(1)
+    # If no angle brackets, assume the whole string is the email
+    return sender_string.strip()
 
-Criteria 2: Clarity and Organization (30 points)
-- 30 points: The assignment is logically organized, clear, and easy to follow. Ideas are presented coherently.
-- 20 points: Generally organized, but may have minor issues with flow or coherence.
-- 10 points: Somewhat disorganized, with unclear transitions or a weak overall structure.
-- 5 points: Disorganized and difficult to follow.
-
-Criteria 3: Critical Thinking and Analysis (20 points)
-- 20 points: Demonstrates strong critical thinking and insightful analysis of the subject matter.
-- 15 points: Shows some critical thinking, but analysis may be less developed or occasionally lack depth.
-- 10 points: Limited critical thinking or superficial analysis.
-- 5 points: Lacks critical thinking or provides incorrect reasoning.
-
-Criteria 4: Presentation and Communication (10 points)
-- 10 points: Solution is well-organized, legible, and easy to follow. All steps are clearly communicated.
-- 0 points: Solution is disorganized and illegible, making it difficult to understand.
-
-Overall Feedback: Provide constructive feedback on strengths and areas for improvement. Suggest specific actions for the student to take to improve their understanding or performance.
-"""
+# Document type detection helper
+def detect_document_type(text):
+    """Auto-detect financial document type from content"""
+    text_lower = text.lower()
+    if "bank statement" in text_lower or "account balance" in text_lower or "checking account" in text_lower:
+        return "bank_statement"
+    elif "credit report" in text_lower or "credit score" in text_lower or "fico" in text_lower or "experian" in text_lower:
+        return "credit_report"
+    else:
+        return "generic"
 
 def check_inbox_periodically():
     while True:
@@ -62,8 +60,10 @@ def check_inbox_periodically():
             status, email_ids = mail.search(None, 
                                             f'(UNSEEN SENTSINCE "{date_24_hours_ago}")')
             
-            print(f"Found {len(email_ids[0].split())} unseen emails from the last 24 hours.")
-            for email_id in email_ids[0].split():
+            email_list = email_ids[0].split()
+            print(f"Found {len(email_list)} unseen emails from the last 24 hours.")
+            
+            for email_id in email_list:
                 status, msg_data = mail.fetch(email_id, "(RFC822)")
                 msg = email.message_from_bytes(msg_data[0][1])
 
@@ -74,13 +74,15 @@ def check_inbox_periodically():
                 sender, encoding = decode_header(msg["From"])[0]
                 if isinstance(sender, bytes):
                     sender = sender.decode(encoding or "utf-8")
+                
+                # Extract just the email address from the sender field
+                sender_email = extract_email_address(sender)
 
-                print(f"Processing email from: {sender} with subject: {subject}")
+                print(f"[Financial Analyzer] Processing email from: {sender} (extracted: {sender_email}) with subject: {subject}")
 
                 has_pdf_attachment = False
                 for part in msg.walk():
                     try:
-                        print(f"Checking part: {part.get_content_type()}")
                         if part.get_content_maintype() == "application" and part.get_content_subtype() == "pdf":
                             has_pdf_attachment = True
                             filename = part.get_filename()
@@ -91,125 +93,135 @@ def check_inbox_periodically():
                                     f.write(part.get_payload(decode=True))
                                 print(f"Downloaded PDF: {filename}")
 
-                                # Process PDF, grade, and send email
-                                process_and_respond(filepath, sender, subject)
+                                # Process in background thread for swift response
+                                executor.submit(process_and_respond, filepath, sender_email, subject)
+                                print(f"[Financial Analyzer] Queued processing for {filename}")
                             else:
                                 print("PDF attachment found but no filename.")
-                        elif part.get_content_maintype() == "multipart":
-                            print("Multipart email part, continuing to walk.")
-                        else:
-                            print(f"Skipping non-PDF part: {part.get_content_type()}")
                     except AttributeError as ae:
-                        print(f"AttributeError when processing email part: {ae}. Part type: {type(part)}. Part content: {part}")
-                        print("This part might not be a valid email.message.Message object.")
+                        print(f"AttributeError when processing email part: {ae}. Part type: {type(part)}")
                     except Exception as part_e:
                         print(f"Unexpected error when processing email part: {part_e}. Part type: {type(part)}")
                 
                 if not has_pdf_attachment:
-                    print(f"No PDF attachment found in email from {sender} with subject: {subject}")
+                    print(f"No PDF attachment found in email from {sender_email} with subject: {subject}")
 
+                # Mark as seen immediately after downloading attachments
                 mail.store(email_id, "+FLAGS", "\\Seen")
 
             mail.logout()
 
         except Exception as e:
             print(f"Error in email worker: {e}")
-        time.sleep(300)  # Check every 300 seconds (5 minutes)
+        
+        # Reduced check interval for faster response
+        time.sleep(30)  # Check every 30 seconds instead of 5 minutes
 
 def process_and_respond(pdf_path, recipient_email, original_subject):
     try:
-        print(f"Attempting to process PDF: {pdf_path}")
+        print(f"[Financial Analyzer] Processing PDF: {pdf_path}")
         extracted_text = process_single_pdf(pdf_path)
-        print(f"Extracted text length: {len(extracted_text)}")
+        print(f"[Financial Analyzer] Extracted text length: {len(extracted_text)}")
         
-        # grade_assignment now returns a dictionary (JSON object)
-        grading_result = grade_assignment(extracted_text, "generic")
+        # Auto-detect document type
+        doc_type = detect_document_type(extracted_text)
+        print(f"[Financial Analyzer] Detected document type: {doc_type}")
         
-        # Check if grading_result is an error dictionary
-        if isinstance(grading_result, dict) and "error" in grading_result:
-            print(f"Error during grading: {grading_result["error"]}")
-            # Ensure the error message is a plain string before passing
-            error_msg_to_send = str(grading_result["error"])
+        # analyze_document returns a dictionary (JSON object)
+        analysis_result = analyze_document(extracted_text, doc_type)
+        
+        # Check if analysis_result is an error dictionary
+        if isinstance(analysis_result, dict) and "error" in analysis_result:
+            print(f"[Financial Analyzer] Error during analysis: {analysis_result['error']}")
+            error_msg_to_send = str(analysis_result["error"])
             send_email_error(recipient_email, original_subject, error_msg_to_send)
             return
 
-        print(f"Generated rubric feedback: {json.dumps(grading_result, indent=2)}")
+        print(f"[Financial Analyzer] Analysis complete")
 
         # Transform the result to match frontend expectations
-
         frontend_result = {
-
-            "name": grading_result.get("student_name", "Unknown"),
-
+            "name": analysis_result.get("client_name", "Unknown"),
             "email": recipient_email,
-
-            "course": "Email Submission",
-
-            "grade_output": f"Grade: {grading_result.get('overall_grade', 'N/A')}\n\nFeedback: {grading_result.get('feedback', 'No feedback available')}",\
-
+            "course": doc_type.replace("_", " ").title(),
+            "grade_output": f"Assessment: {analysis_result.get('overall_assessment', 'Pending Review')}\n\nSummary: {analysis_result.get('analysis_summary', 'No summary available')}\n\nKey Findings: {analysis_result.get('key_findings', 'No findings')}\n\nRed Flags: {analysis_result.get('red_flags', 'None identified')}\n\nRecommendations: {analysis_result.get('recommendations', 'No recommendations')}",
             "timestamp": "",
-
-            "criteria_scores": grading_result.get("criteria_scores", [])
-
+            "criteria_scores": analysis_result.get("criteria_analysis", []),
+            "document_type": doc_type,
+            "red_flags": analysis_result.get("red_flags", "None identified")
         }
 
         # Save the structured result
         write_result_to_file(frontend_result)
-        print(f"Grading result saved.")
+        print(f"[Financial Analyzer] Analysis result saved.")
 
         # Format feedback for email
-        feedback_for_email = f"Overall Grade: {grading_result.get("overall_grade", "N/A")}\n\n"
-        feedback_for_email += "Criteria Scores:\n"
-        for criterion in grading_result.get("criteria_scores", []):
-            # Escape curly braces in justification and detalle
-            justification = criterion.get("justification", "N/A").replace("{", "{{").replace("}", "}}")
-            detalle = criterion.get("detalle", "").replace("{", "{{").replace("}", "}}")
+        feedback_for_email = f"FINANCIAL DOCUMENT ANALYSIS REPORT\n\n"
+        feedback_for_email += f"Document Type: {doc_type.replace('_', ' ').upper()}\n"
+        feedback_for_email += f"Overall Assessment: {analysis_result.get('overall_assessment', 'N/A')}\n\n"
+        feedback_for_email += f"SUMMARY:\n{analysis_result.get('analysis_summary', 'N/A')}\n\n"
+        feedback_for_email += f"KEY FINDINGS:\n{analysis_result.get('key_findings', 'N/A')}\n\n"
+        
+        # Add criteria analysis
+        feedback_for_email += "DETAILED ANALYSIS:\n"
+        for criterion in analysis_result.get("criteria_analysis", []):
+            findings = criterion.get("findings", "N/A").replace("{", "{{").replace("}", "}}")
+            assessment = criterion.get("assessment", "N/A")
+            notes = criterion.get("notes", "").replace("{", "{{").replace("}", "}}")
 
-            feedback_for_email += f"- {criterion.get("criterion", "N/A")}: {criterion.get("score", "N/A")} - {justification}\n"
-            if detalle:
-                feedback_for_email += f"  (Points lost: {detalle})\n"
-        feedback_for_email += f"\nOverall Feedback: {grading_result.get("feedback", "N/A")}"
+            feedback_for_email += f"\n{criterion.get('criterion', 'N/A')}:\n"
+            feedback_for_email += f"  Findings: {findings}\n"
+            feedback_for_email += f"  Assessment: {assessment}\n"
+            if notes:
+                feedback_for_email += f"  Notes: {notes}\n"
+        
+        # Add red flags section
+        red_flags = analysis_result.get("red_flags", "None identified")
+        if red_flags and red_flags != "None identified":
+            feedback_for_email += f"\n⚠️ RED FLAGS:\n{red_flags}\n"
+        
+        feedback_for_email += f"\nRECOMMENDATIONS:\n{analysis_result.get('recommendations', 'N/A')}\n"
+        feedback_for_email += "\n---\nThis is an automated analysis. Please review the original document for complete details."
 
         send_email_feedback(recipient_email, original_subject, feedback_for_email)
-        print(f"Feedback email sent to {recipient_email}")
+        print(f"[Financial Analyzer] Analysis report sent to {recipient_email}")
 
     except Exception as e:
         print(f"Error processing and responding to PDF {pdf_path}: {e}")
-        # Ensure the error message is a plain string before passing
         error_msg_to_send = str(e)
         send_email_error(recipient_email, original_subject, error_msg_to_send)
 
 def send_email_feedback(recipient_email, original_subject, feedback):
     try:
         msg = MIMEText(feedback)
-        msg["Subject"] = f"Re: {original_subject} - Your Assignment Feedback"
+        msg["Subject"] = f"Re: {original_subject} - Financial Document Analysis Report"
         msg["From"] = EMAIL
         msg["To"] = recipient_email
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
-        print(f"Feedback email sent to {recipient_email}")
+        print(f"[Financial Analyzer] Analysis report email sent to {recipient_email}")
     except Exception as e:
-        print(f"Error sending feedback email to {recipient_email}: {e}")
+        print(f"[Financial Analyzer] Error sending analysis report to {recipient_email}: {e}")
 
 def send_email_error(recipient_email, original_subject, error_message):
     try:
-        # Escape curly braces in the error_message itself
         escaped_error_message = error_message.replace("{", "{{").replace("}", "}}")
-        error_body = f"An error occurred while processing your assignment (Subject: {original_subject}):\n\n{escaped_error_message}\n\nPlease try again or contact support."
+        error_body = f"An error occurred while processing your financial document (Subject: {original_subject}):\n\n{escaped_error_message}\n\nPlease ensure the document is a valid PDF and try again, or contact our support team."
         msg = MIMEText(error_body)
-        msg["Subject"] = f"Re: {original_subject} - Error Processing Assignment"
+        msg["Subject"] = f"Re: {original_subject} - Error Processing Document"
         msg["From"] = EMAIL
         msg["To"] = recipient_email
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
-        print(f"Error email sent to {recipient_email}")
+        print(f"[Financial Analyzer] Error email sent to {recipient_email}")
     except Exception as e:
-        print(f"Error sending error email to {recipient_email}: {e}")
+        print(f"[Financial Analyzer] Error sending error email to {recipient_email}: {e}")
 
 if __name__ == "__main__":
-    print("Email worker started. Checking inbox periodically...")
-    # check_inbox_periodically() # Uncomment to run directly for testing
+    print("[Financial Analyzer] Email worker started. Monitoring inbox for financial documents...")
+    print("[Financial Analyzer] Swift response mode enabled (30-second check interval)")
+    check_inbox_periodically()
