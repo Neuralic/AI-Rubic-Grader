@@ -155,19 +155,31 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
         write_result_to_file(frontend_result)
         print(f"[Financial Analyzer] Analysis result saved.")
 
-        # Format feedback for email
+        # Format feedback for email - safely convert all values to strings
         feedback_for_email = f"FINANCIAL DOCUMENT ANALYSIS REPORT\n\n"
         feedback_for_email += f"Document Type: {doc_type.replace('_', ' ').upper()}\n"
-        feedback_for_email += f"Overall Assessment: {analysis_result.get('overall_assessment', 'N/A')}\n\n"
-        feedback_for_email += f"SUMMARY:\n{analysis_result.get('analysis_summary', 'N/A')}\n\n"
-        feedback_for_email += f"KEY FINDINGS:\n{analysis_result.get('key_findings', 'N/A')}\n\n"
+        
+        overall_assessment = analysis_result.get('overall_assessment', 'N/A')
+        feedback_for_email += f"Overall Assessment: {str(overall_assessment)}\n\n"
+        
+        analysis_summary = analysis_result.get('analysis_summary', 'N/A')
+        feedback_for_email += f"SUMMARY:\n{str(analysis_summary)}\n\n"
+        
+        key_findings = analysis_result.get('key_findings', 'N/A')
+        feedback_for_email += f"KEY FINDINGS:\n{str(key_findings)}\n\n"
         
         # Add criteria analysis
         feedback_for_email += "DETAILED ANALYSIS:\n"
         for criterion in analysis_result.get("criteria_analysis", []):
-            findings = criterion.get("findings", "N/A").replace("{", "{{").replace("}", "}}")
-            assessment = criterion.get("assessment", "N/A")
-            notes = criterion.get("notes", "").replace("{", "{{").replace("}", "}}")
+            # Safely get findings and convert to string before replacing
+            findings_raw = criterion.get("findings", "N/A")
+            findings = str(findings_raw).replace("{", "{{").replace("}", "}}") if findings_raw else "N/A"
+            
+            assessment_raw = criterion.get("assessment", "N/A")
+            assessment = str(assessment_raw) if assessment_raw else "N/A"
+            
+            notes_raw = criterion.get("notes", "")
+            notes = str(notes_raw).replace("{", "{{").replace("}", "}}") if notes_raw else ""
 
             feedback_for_email += f"\n{criterion.get('criterion', 'N/A')}:\n"
             feedback_for_email += f"  Findings: {findings}\n"
@@ -175,12 +187,14 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
             if notes:
                 feedback_for_email += f"  Notes: {notes}\n"
         
-        # Add red flags section
+        # Add red flags section - safely convert to string
         red_flags = analysis_result.get("red_flags", "None identified")
-        if red_flags and red_flags != "None identified":
-            feedback_for_email += f"\n⚠️ RED FLAGS:\n{red_flags}\n"
+        red_flags_str = str(red_flags) if red_flags else "None identified"
+        if red_flags_str and red_flags_str != "None identified":
+            feedback_for_email += f"\n⚠️ RED FLAGS:\n{red_flags_str}\n"
         
-        feedback_for_email += f"\nRECOMMENDATIONS:\n{analysis_result.get('recommendations', 'N/A')}\n"
+        recommendations = analysis_result.get('recommendations', 'N/A')
+        feedback_for_email += f"\nRECOMMENDATIONS:\n{str(recommendations)}\n"
         feedback_for_email += "\n---\nThis is an automated analysis. Please review the original document for complete details."
 
         send_email_feedback(recipient_email, original_subject, feedback_for_email)
@@ -188,36 +202,44 @@ def process_and_respond(pdf_path, recipient_email, original_subject):
 
     except Exception as e:
         print(f"Error processing and responding to PDF {pdf_path}: {e}")
+        import traceback
+        traceback.print_exc()  # Print full error trace for debugging
         error_msg_to_send = str(e)
         send_email_error(recipient_email, original_subject, error_msg_to_send)
 
 def send_email_feedback(recipient_email, original_subject, feedback):
     try:
+        # Ensure we have a clean email address
+        clean_email = extract_email_address(recipient_email)
+        
         msg = MIMEText(feedback)
         msg["Subject"] = f"Re: {original_subject} - Financial Document Analysis Report"
         msg["From"] = EMAIL
-        msg["To"] = recipient_email
+        msg["To"] = clean_email
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
-        print(f"[Financial Analyzer] Analysis report email sent to {recipient_email}")
+        print(f"[Financial Analyzer] Analysis report email sent to {clean_email}")
     except Exception as e:
         print(f"[Financial Analyzer] Error sending analysis report to {recipient_email}: {e}")
 
 def send_email_error(recipient_email, original_subject, error_message):
     try:
+        # Ensure we have a clean email address
+        clean_email = extract_email_address(recipient_email)
+        
         escaped_error_message = error_message.replace("{", "{{").replace("}", "}}")
         error_body = f"An error occurred while processing your financial document (Subject: {original_subject}):\n\n{escaped_error_message}\n\nPlease ensure the document is a valid PDF and try again, or contact our support team."
         msg = MIMEText(error_body)
         msg["Subject"] = f"Re: {original_subject} - Error Processing Document"
         msg["From"] = EMAIL
-        msg["To"] = recipient_email
+        msg["To"] = clean_email
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
             smtp.login(EMAIL, PASSWORD)
             smtp.send_message(msg)
-        print(f"[Financial Analyzer] Error email sent to {recipient_email}")
+        print(f"[Financial Analyzer] Error email sent to {clean_email}")
     except Exception as e:
         print(f"[Financial Analyzer] Error sending error email to {recipient_email}: {e}")
 
